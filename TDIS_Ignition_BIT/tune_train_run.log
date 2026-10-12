@@ -1,0 +1,71 @@
+C:\Users\Admin\anaconda3\envs\torch_gpu\lib\site-packages\xgboost\core.py:751: UserWarning: [14:50:18] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\common\error_msg.cc:62: Falling back to prediction using DMatrix due to mismatched devices. This might lead to higher memory usage and slower performance. XGBoost is running on: cuda:0, while the input data is on: cpu.
+Potential solutions:
+- Use a data structure that matches the device ordinal in the booster.
+- Set the device for booster before call to inplace_predict.
+
+This warning will only be shown once.
+
+  return func(**kwargs)
+Loading C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition_BIT\data\bit_train_tx.parquet ...
+Shape: (2201289, 44)
+Train 671,455 (0.3042 pos) | Val 268,332 (0.2876 pos) | Test 1,261,502 (0.3055 pos)
+scale_pos_weight = 2.2872
+
+=== Stage 1: max_depth x min_child_weight (12 trials) ===
+  depth=6 mcw=10: val_auroc=0.8412 val_aucpr=0.7332 (best_iter=399)
+  depth=6 mcw=20: val_auroc=0.8429 val_aucpr=0.7349 (best_iter=399)
+  depth=6 mcw=30: val_auroc=0.8433 val_aucpr=0.7353 (best_iter=399)
+  depth=7 mcw=10: val_auroc=0.8477 val_aucpr=0.7468 (best_iter=399)
+  depth=7 mcw=20: val_auroc=0.8480 val_aucpr=0.7464 (best_iter=398)
+  depth=7 mcw=30: val_auroc=0.8488 val_aucpr=0.7482 (best_iter=399)
+  depth=8 mcw=10: val_auroc=0.8506 val_aucpr=0.7561 (best_iter=399)
+  depth=8 mcw=20: val_auroc=0.8512 val_aucpr=0.7559 (best_iter=399)
+  depth=8 mcw=30: val_auroc=0.8512 val_aucpr=0.7554 (best_iter=398)
+  depth=9 mcw=10: val_auroc=0.8516 val_aucpr=0.7604 (best_iter=399)
+  depth=9 mcw=20: val_auroc=0.8511 val_aucpr=0.7586 (best_iter=378)
+  depth=9 mcw=30: val_auroc=0.8523 val_aucpr=0.7591 (best_iter=399)
+Stage 1 winner: depth=9, min_child_weight=10
+
+=== Stage 2: learning_rate x subsample (9 trials) ===
+  lr=0.01 sub=0.7: val_auroc=0.8508 val_aucpr=0.7541 (best_iter=1199)
+  lr=0.01 sub=0.8: val_auroc=0.8509 val_aucpr=0.7543 (best_iter=1199)
+  lr=0.01 sub=0.9: val_auroc=0.8508 val_aucpr=0.7543 (best_iter=1197)
+  lr=0.02 sub=0.7: val_auroc=0.8527 val_aucpr=0.7618 (best_iter=1190)
+  lr=0.02 sub=0.8: val_auroc=0.8526 val_aucpr=0.7620 (best_iter=1199)
+  lr=0.02 sub=0.9: val_auroc=0.8529 val_aucpr=0.7624 (best_iter=1192)
+  lr=0.05 sub=0.7: val_auroc=0.8518 val_aucpr=0.7612 (best_iter=490)
+  lr=0.05 sub=0.8: val_auroc=0.8516 val_aucpr=0.7632 (best_iter=695)
+  lr=0.05 sub=0.9: val_auroc=0.8512 val_aucpr=0.7621 (best_iter=648)
+Stage 2 winner: lr=0.05, subsample=0.8
+
+=== Final training with winning hyperparameters ===
+Best iteration: 695
+
+RAW  Train AUROC=0.9494 AUPR=0.9051
+RAW  Val   AUROC=0.8516 AUPR=0.7632
+RAW  Test  AUROC=0.8064 AUPR=0.7237 F1=0.6284 Lift=2.37x
+
+=== Isotonic calibration (fit on val) ===
+CAL  Val   AUROC=0.8518 AUPR=0.7591
+CAL  Test  AUROC=0.8064 AUPR=0.7190
+Test Brier raw=0.1540 -> calibrated=0.1474
+
+Top 15 features by gain:
+  ecoregion_id         gain=    241.99  20.79%
+  elevation_m          gain=     89.57  7.70%
+  hrrr_vpd             gain=     63.46  5.45%
+  avg_burn_prob        gain=     59.38  5.10%
+  lat                  gain=     52.13  4.48%
+  lon                  gain=     39.63  3.40%
+  powerline_dist_km    gain=     38.23  3.28%
+  road_dist_km         gain=     38.07  3.27%
+  rmin                 gain=     37.87  3.25%
+  sin_month            gain=     33.97  2.92%
+  whp                  gain=     25.79  2.22%
+  hrrr_mstav           gain=     23.86  2.05%
+  cos_month            gain=     23.37  2.01%
+  pop_density          gain=     23.09  1.98%
+  rmax                 gain=     22.52  1.93%
+
+Saved model, calibrator, and results to C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition_BIT\model
+Total runtime: 185.7s

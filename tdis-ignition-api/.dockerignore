@@ -1,0 +1,6 @@
+.venv
+_local
+__pycache__
+*.pyc
+synth.py
+README.md

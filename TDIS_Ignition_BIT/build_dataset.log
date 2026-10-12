@@ -1,0 +1,33 @@
+Loading C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition\model_tristate\data\train_tristate_v2.parquet ...
+Raw tri-state shape: (2731285, 45)
+TX-only rows: 2,202,331
+Deriving lat/lon from h3_cell ...
+  erc: imputed 1,687,587 nulls (76.63%) via seasonal median
+  fm100: imputed 1,687,587 nulls (76.63%) via seasonal median
+  vpd: imputed 1,687,587 nulls (76.63%) via seasonal median
+  vs: imputed 1,687,587 nulls (76.63%) via seasonal median
+  rmax: imputed 1,687,587 nulls (76.63%) via seasonal median
+  rmin: imputed 1,687,587 nulls (76.63%) via seasonal median
+  tmmx: imputed 1,687,366 nulls (76.62%) via seasonal median
+  pr: imputed 1,687,587 nulls (76.63%) via seasonal median
+  ecoregion_id: imputed 244,323 nulls (11.09%) via mode
+  fm100_5d_min: imputed 220,209 nulls (10.00%) via median
+
+Truncated 1,042 phantom future-dated rows (> 2026-07-29), all label=[0]
+
+Final shape: (2201289, 44)
+Label positive rate: 0.3029
+Split counts:
+ split
+test     1261502
+train     671455
+val       268332
+Name: count, dtype: int64
+Split date ranges:
+             min        max
+split                      
+test  2022-01-01 2026-07-29
+train 2018-07-16 2020-12-31
+val   2021-01-01 2021-12-31
+
+Saved -> C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition_BIT\data\bit_train_tx.parquet

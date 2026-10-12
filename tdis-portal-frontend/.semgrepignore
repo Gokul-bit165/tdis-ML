@@ -1,0 +1,11 @@
+# Vendor / third-party bundles (do not patch; origin checks are owned upstream)
+public/keycloak.js
+
+# Build and dependency trees
+dist/
+coverage/
+node_modules/
+
+# Rule exclusions (not path-based) live in azure-pipelines.yml Semgrep step:
+# --exclude-rule javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
+# (console/util.format template-literal style findings; disabled per PR #121)

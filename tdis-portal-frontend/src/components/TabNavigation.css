@@ -1,0 +1,160 @@
+/* Map product tabs + TDIS AI tab — uses --tdis-* tokens from index.css */
+
+.tdis-map-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+  border: 1px solid transparent;
+}
+
+.tdis-map-tab:not(.tdis-map-tab--active) {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(226, 232, 240, 0.72);
+  color: var(--tdis-slate);
+}
+
+.tdis-map-tab:not(.tdis-map-tab--active):hover {
+  background: var(--tdis-white);
+  border-color: rgba(203, 213, 225, 0.85);
+  box-shadow: 0 1px 3px rgba(50, 71, 85, 0.08);
+}
+
+.tdis-map-tab--active {
+  background: var(--tdis-slate);
+  color: var(--tdis-white);
+  box-shadow: 0 2px 6px rgba(50, 71, 85, 0.2);
+}
+
+.tdis-tab-divider {
+  flex-shrink: 0;
+  align-self: center;
+  width: 1px;
+  height: 2rem;
+  background: linear-gradient(
+    180deg,
+    rgba(226, 232, 240, 0.35) 0%,
+    var(--tdis-teal) 50%,
+    rgba(226, 232, 240, 0.35) 100%
+  );
+  opacity: 0.85;
+}
+
+.tdis-ai-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, var(--tdis-white) 0%, var(--tdis-surface) 100%);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tdis-slate);
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px rgba(50, 71, 85, 0.06),
+    0 2px 8px rgba(50, 71, 85, 0.06);
+  transition:
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.tdis-ai-tab:not(.tdis-ai-tab--active) {
+  border-color: rgba(226, 232, 240, 0.72);
+}
+
+@media (min-width: 640px) {
+  .tdis-ai-tab {
+    gap: 0.5rem;
+    padding: 0.5rem 0.95rem 0.5rem 0.65rem;
+  }
+}
+
+.tdis-ai-tab:not(.tdis-ai-tab--active):hover {
+  border-color: rgba(203, 213, 225, 0.85);
+}
+
+.tdis-ai-tab:hover {
+  background: linear-gradient(180deg, var(--tdis-white) 0%, var(--tdis-teal-surface) 100%);
+  box-shadow:
+    0 2px 4px rgba(50, 71, 85, 0.08),
+    0 4px 14px rgba(135, 188, 191, 0.2);
+}
+
+.tdis-ai-tab:focus {
+  outline: none;
+}
+
+.tdis-ai-tab:focus-visible {
+  outline: 2px solid var(--tdis-slate);
+  outline-offset: 2px;
+}
+
+.tdis-ai-tab--active {
+  background: var(--tdis-gradient-slate);
+  color: var(--tdis-white);
+  box-shadow:
+    0 2px 6px rgba(50, 71, 85, 0.22),
+    0 8px 20px rgba(50, 71, 85, 0.18);
+}
+
+.tdis-ai-tab--active:hover {
+  background: linear-gradient(
+    135deg,
+    var(--tdis-slate-deep) 0%,
+    var(--tdis-slate) 50%,
+    var(--tdis-slate-hover) 100%
+  );
+}
+
+.tdis-ai-tab__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.4rem;
+  background: var(--tdis-teal-soft);
+  color: var(--tdis-slate);
+  flex-shrink: 0;
+}
+
+.tdis-ai-tab--active .tdis-ai-tab__icon-wrap {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--tdis-white);
+}
+
+.tdis-ai-tab__glyph {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+}
+
+.tdis-ai-tab__label {
+  letter-spacing: 0.01em;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tdis-ai-tab,
+  .tdis-map-tab {
+    transition:
+      background 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "name": "tdis-portal-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js",
+    "test": "jest --coverage --watchAll=false"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TexasDIS/tdis-portal-backend.git"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TexasDIS/tdis-portal-backend/issues"
+  },
+  "homepage": "https://github.com/TexasDIS/tdis-portal-backend#readme",
+  "dependencies": {
+    "cls-rtracer": "^2.6.3",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "email-templates": "^11.1.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "nodemailer": "^6.9.11",
+    "nodemon": "^3.0.3",
+    "throng": "^5.0.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "supertest": "^7.2.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "watchman": false,
+    "roots": [
+      "<rootDir>"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/__tests__/setup.js"
+    ],
+    "collectCoverageFrom": [
+      "app.js",
+      "server.js",
+      "routes/**/*.js",
+      "controllers/**/*.js",
+      "config/**/*.js"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "path": "../..",
+    },
+    {
+      "path": "../../../tdis-portal-api",
+    },
+    {
+      "path": "../../../ramp-app",
+    },
+    {
+      "path": "../../../ramp-api",
+    },
+  ],
+  "settings": {},
+}

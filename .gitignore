@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+jspm_packages/
+
+# Python & Virtual Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+
+# Environment Variables & Secrets
+.env
+*.env
+.env.*
+!.env.example
+
+# Local Data, Databases & Temporary Files
+_local/
+pgdata/
+*.sqlite
+*.sqlite3
+
+# Large Dataset Files exceeding GitHub's 100MB limit
+TDIS_Ignition_BIT/data/bit_train_tx.parquet
+TDIS_Ignition_BIT_V2/data/processed/bit_v2_train_tx.csv
+TDIS_Ignition_BIT_V2/data/processed/bit_v2_train_tx.parquet
+
+# Editor & AI Tooling
+.claude/
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db

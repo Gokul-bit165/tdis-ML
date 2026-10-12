@@ -1,0 +1,145 @@
+# Azure DevOps pipeline: Node.js Express API → SonarQube → quality gates → Docker build & push to ACR.
+#
+# App Service Deployment
+# ----------------------
+# This pipeline ONLY builds and pushes Docker images to ACR.
+# Deployment to App Service is handled separately via approved deployment pipelines.
+# DO NOT add App Service restart, deployment, or secret access steps per DevOps standards.
+#
+# Prerequisites
+# -------------
+# - SonarQube: extension + service connection (`sonarQubeServiceConnection`).
+# - Docker registry service connections for `tdisdevacr` (dev) and `tdisprodacr` (prod).
+#
+# Pull requests
+# -------------
+# Runs ESLint, Prettier, tests, SonarQube, Semgrep, and Docker build validation on every PR.
+# Does **not** push to ACR (push tasks are gated to branch pushes only) or deploy to App Service.
+
+trigger:
+    branches:
+        include:
+            - development
+            - main
+            - release/*
+
+pr:
+    branches:
+        include:
+            - development
+
+variables:
+    - name: nodeVersion
+      value: '18.x'
+    - name: sonarQubeServiceConnection
+      value: 'SonarQube'
+    - name: prettierVersion
+      value: '3.5.3'
+    - name: shouldWaitGate
+      value: $[ or(eq(variables['Build.Reason'], 'PullRequest'), and(ne(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.SourceBranch'], 'refs/heads/development'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))) ]
+    - name: continueOnQualityGateFailure
+      value: false
+
+pool:
+    vmImage: ubuntu-latest
+
+steps:
+    - checkout: self
+      fetchDepth: 0
+
+    - task: NodeTool@0
+      inputs:
+          versionSpec: '$(nodeVersion)'
+      displayName: 'Use Node.js $(nodeVersion)'
+
+    - script: |
+          set -euo pipefail
+          npm ci
+      displayName: 'npm ci'
+
+    # ESLint disabled - no 'lint' script in package.json
+    # TODO: Add ESLint configuration and enable this step (HELPDESK TICKET: TBD)
+    - script: |
+          set -euo pipefail
+          npm run lint
+      displayName: 'ESLint - HELPDESK TICKET: TBD'
+      condition: false
+      continueOnError: ${{ variables.continueOnQualityGateFailure }}
+
+    - script: |
+          set -euo pipefail
+          npx --yes "prettier@$(prettierVersion)" --check --ignore-unknown .
+      displayName: 'Prettier (check) - HELPDESK TICKET: TBD'
+      continueOnError: ${{ variables.continueOnQualityGateFailure }}
+
+    - task: SonarQubePrepare@8
+      inputs:
+          SonarQube: '$(sonarQubeServiceConnection)'
+          scannerMode: 'CLI'
+          configMode: 'file'
+          configFile: 'sonar-project.properties'
+          extraProperties: |
+              sonar.qualitygate.wait=$(shouldWaitGate)
+      displayName: 'SonarQube — Prepare analysis'
+
+    - script: |
+          set -euo pipefail
+          npm test
+      displayName: 'Jest tests (with coverage for Sonar) - HELPDESK TICKET: TBD'
+      continueOnError: ${{ variables.continueOnQualityGateFailure }}
+      env:
+          CI: 'true'
+
+    - task: SonarQubeAnalyze@8
+      displayName: 'SonarQube — Run scanner'
+
+    - task: SonarQubePublish@8
+      displayName: 'SonarQube — Publish quality gate result'
+      condition: eq(variables['shouldWaitGate'], 'true')
+
+    - script: |
+          set -euo pipefail
+          python -m pip install semgrep
+          echo "-------------------------------------------------------"
+          echo "🔍 Running Semgrep Security Scan..."
+          echo "Note: The build will fail if high-severity issues are found."
+          echo "-------------------------------------------------------"
+          semgrep scan --config auto --error --verbose
+      displayName: 'Semgrep Security Scan - HELPDESK TICKET: TBD'
+      continueOnError: ${{ variables.continueOnQualityGateFailure }}
+
+    # 1. PR ONLY: Build but do NOT push
+    - task: Docker@2
+      displayName: 'Docker — Build Only (PR)'
+      condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+      inputs:
+          containerRegistry: 'tdisdevacr'
+          repository: 'tdis-portal/backend'
+          command: 'build'
+          Dockerfile: 'Dockerfile'
+          tags: |
+              v$(Build.BuildId)
+
+    # 2. DEVELOPMENT ONLY: Build and Push to Dev ACR
+    - task: Docker@2
+      displayName: 'Docker — Build and Push to Dev ACR'
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/development'))
+      inputs:
+          containerRegistry: 'tdisdevacr'
+          repository: 'tdis-portal/backend'
+          command: 'buildAndPush'
+          Dockerfile: 'Dockerfile'
+          tags: |
+              v$(Build.BuildId)
+
+    # 3. MAIN / RELEASE ONLY: Build and Push to Prod ACR
+    - task: Docker@2
+      displayName: 'Docker — Build and Push to Prod ACR'
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))
+      inputs:
+          containerRegistry: 'tdisprodacr'
+          repository: 'tdis-portal/backend'
+          command: 'buildAndPush'
+          Dockerfile: 'Dockerfile'
+          tags: |
+              v$(Build.BuildId)

@@ -1,0 +1,70 @@
+DROP VIEW IF EXISTS view_events_store;
+
+CREATE VIEW view_events_store AS
+WITH point_data AS (
+    SELECT 
+        c.county,
+        c.county_id,
+        et.event_type,
+        et.event_type_id,
+        es.event_date,
+        MIN(es.created_at) as created_at,
+        es.is_active,
+        CASE
+            WHEN ST_IsEmpty(ST_Intersection(ST_Collect(es.geom), c.geom))
+                THEN ST_PointOnSurface(ST_Collect(es.geom))
+            ELSE
+                ST_PointOnSurface(ST_Intersection(ST_Collect(es.geom), c.geom))
+        END as representative_point,
+        COUNT(*) as event_count
+    FROM events_store es
+    INNER JOIN event_types et 
+        ON es.event_type_id = et.event_type_id
+    INNER JOIN counties c 
+        ON es.county_id = c.county_id
+    INNER JOIN batch_jobs bj 
+        ON es.batch_job_id = bj.batch_job_id
+    WHERE es.is_active = true
+    AND et.event_type != 'Hurricane'  -- Exclude hurricanes
+    GROUP BY 
+        c.county,
+        c.county_id,
+        et.event_type,
+        et.event_type_id,
+        es.event_date,
+        es.is_active,
+        c.geom
+)
+SELECT 
+    gen_random_uuid() as event_store_id,
+    pd.event_type,
+    pd.event_date,
+    MIN(pd.created_at) as created_at,
+    pd.is_active,
+    CASE 
+        WHEN pd.event_type IN ('High Wind', 'Rainfall', 'Hail') THEN
+            json_build_object(
+                'min_value', MIN(NULLIF((es.description::json->>'value'), '')::numeric),
+                'max_value', MAX(NULLIF((es.description::json->>'value'), '')::numeric),
+                'units', MODE() WITHIN GROUP (ORDER BY NULLIF((es.description::json->>'units'), ''))
+            )::text
+        ELSE
+            (SELECT es2.description 
+             FROM events_store es2 
+             WHERE ST_Equals(es2.geom, pd.representative_point)
+             AND es2.is_active = true)
+    END as description,
+    MAX(pd.event_count) as event_count,
+    pd.representative_point as geom,
+    pd.county
+FROM point_data pd
+INNER JOIN events_store es 
+    ON es.is_active = true
+    AND es.county_id = pd.county_id
+    AND es.event_type_id = pd.event_type_id
+GROUP BY 
+    pd.event_type,
+    pd.event_date,
+    pd.is_active,
+    pd.representative_point,
+    pd.county;

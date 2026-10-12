@@ -1,0 +1,17 @@
+Loading C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition_BIT\data\bit_train_tx.parquet ...
+Input shape: (2201289, 44)
+Dropped ['lat', 'lon'] -> shape: (2201289, 42)
+Split counts:
+ split
+test     1261502
+train     671455
+val       268332
+Name: count, dtype: int64
+Label positive rate: 0.3029
+
+Writing parquet -> C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition_BIT_V2\data\processed\bit_v2_train_tx.parquet
+Writing csv -> C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition_BIT_V2\data\processed\bit_v2_train_tx.csv (this is a ~2.2M-row file, will take a minute)
+Wrote 2,000-row inspection sample -> C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition_BIT_V2\data\raw\bit_v2_test_sample.csv
+
+Final feature count (excl. h3_cell/date/label/year/split/state): 36
+Final columns: ['h3_cell', 'date', 'label', 'year', 'erc', 'fm100', 'vpd', 'vs', 'rmax', 'rmin', 'tmmx', 'pr', 'ecoregion_id', 'elevation_m', 'slope_deg', 'aspect_deg', 'road_dist_km', 'avg_burn_prob', 'whp', 'cfl', 'flep4', 'cbd', 'cbh', 'sin_dow', 'cos_dow', 'is_weekend', 'sin_month', 'cos_month', 'is_holiday', 'split', 'hrrr_tmp', 'hrrr_vpd', 'hrrr_wind', 'hrrr_mstav', 'state', 'drought_score', 'powerline_dist_km', 'bp_x_vpd', 'whp_x_vpd', 'bp_x_drought', 'pop_density', 'fm100_5d_min']

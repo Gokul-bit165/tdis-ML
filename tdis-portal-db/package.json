@@ -1,0 +1,19 @@
+{
+  "name": "event-detection-db",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "node migrate.js",
+    "seed:counties": "node data_import/seed_counties.js",
+    "seed:cities": "node data_import/seed_cities.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "pg": "^8.14.1"
+  }
+}

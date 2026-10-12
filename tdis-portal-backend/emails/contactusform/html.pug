@@ -1,0 +1,8 @@
+html
+    head
+        style
+             include ./style.css
+
+p You have received a new message on the TDIS portal from #[strong #{userName}] (#[a(href='mailto:#{userEmail}') #{userEmail}]):
+
+p(style='padding: 10px; background-color: #f4f4f4; border-left: 4px solid #ccc; font-style: italic;') #{message}

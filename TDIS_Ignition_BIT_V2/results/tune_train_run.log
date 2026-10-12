@@ -1,0 +1,91 @@
+C:\Users\Admin\anaconda3\envs\torch_gpu\lib\site-packages\xgboost\core.py:751: UserWarning: [10:05:04] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\common\error_msg.cc:62: Falling back to prediction using DMatrix due to mismatched devices. This might lead to higher memory usage and slower performance. XGBoost is running on: cuda:0, while the input data is on: cpu.
+Potential solutions:
+- Use a data structure that matches the device ordinal in the booster.
+- Set the device for booster before call to inplace_predict.
+
+This warning will only be shown once.
+
+  return func(**kwargs)
+Loading C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition_BIT_V2\data\processed\bit_v2_train_tx.parquet ...
+Shape: (2201289, 42), features: 36
+Train 671,455 (0.3042 pos) | Val 268,332 (0.2876 pos) | Test 1,261,502 (0.3055 pos)
+scale_pos_weight = 2.2872
+
+=== Stage 1: max_depth x min_child_weight (16 trials) ===
+  depth=6 mcw=10: val_auroc=0.8336 val_aucpr=0.7207 gap=0.0454 (best_iter=399)
+  depth=6 mcw=20: val_auroc=0.8342 val_aucpr=0.7217 gap=0.0443 (best_iter=398)
+  depth=6 mcw=30: val_auroc=0.8343 val_aucpr=0.7207 gap=0.0433 (best_iter=398)
+  depth=6 mcw=50: val_auroc=0.8339 val_aucpr=0.7192 gap=0.0421 (best_iter=398)
+  depth=7 mcw=10: val_auroc=0.8392 val_aucpr=0.7343 gap=0.0551 (best_iter=396)
+  depth=7 mcw=20: val_auroc=0.8388 val_aucpr=0.7329 gap=0.0536 (best_iter=397)
+  depth=7 mcw=30: val_auroc=0.8394 val_aucpr=0.7330 gap=0.0521 (best_iter=399)
+  depth=7 mcw=50: val_auroc=0.8382 val_aucpr=0.7313 gap=0.0506 (best_iter=399)
+  depth=8 mcw=10: val_auroc=0.8417 val_aucpr=0.7419 gap=0.0673 (best_iter=396)
+  depth=8 mcw=20: val_auroc=0.8405 val_aucpr=0.7400 gap=0.0656 (best_iter=398)
+  depth=8 mcw=30: val_auroc=0.8412 val_aucpr=0.7402 gap=0.0630 (best_iter=395)
+  depth=8 mcw=50: val_auroc=0.8418 val_aucpr=0.7393 gap=0.0581 (best_iter=399)
+  depth=9 mcw=10: val_auroc=0.8413 val_aucpr=0.7442 gap=0.0818 (best_iter=379)
+  depth=9 mcw=20: val_auroc=0.8421 val_aucpr=0.7444 gap=0.0779 (best_iter=397)
+  depth=9 mcw=30: val_auroc=0.8413 val_aucpr=0.7431 gap=0.0747 (best_iter=395)
+  depth=9 mcw=50: val_auroc=0.8422 val_aucpr=0.7428 gap=0.0684 (best_iter=399)
+Stage 1 winner (best-within-0.003-AUPR, most regularized): depth=9, min_child_weight=50
+
+=== Stage 2: learning_rate x subsample (9 trials) ===
+  lr=0.01 sub=0.7: val_auroc=0.8408 val_aucpr=0.7354 (best_iter=1199)
+  lr=0.01 sub=0.8: val_auroc=0.8408 val_aucpr=0.7361 (best_iter=1199)
+  lr=0.01 sub=0.9: val_auroc=0.8406 val_aucpr=0.7363 (best_iter=1199)
+  lr=0.02 sub=0.7: val_auroc=0.8427 val_aucpr=0.7441 (best_iter=1198)
+  lr=0.02 sub=0.8: val_auroc=0.8424 val_aucpr=0.7446 (best_iter=1198)
+  lr=0.02 sub=0.9: val_auroc=0.8433 val_aucpr=0.7460 (best_iter=1198)
+  lr=0.05 sub=0.7: val_auroc=0.8423 val_aucpr=0.7459 (best_iter=727)
+  lr=0.05 sub=0.8: val_auroc=0.8421 val_aucpr=0.7473 (best_iter=842)
+  lr=0.05 sub=0.9: val_auroc=0.8416 val_aucpr=0.7482 (best_iter=1047)
+Stage 2 winner: lr=0.05, subsample=0.9
+
+=== Stage 3: gamma x colsample_bytree (9 trials, new in V2) ===
+  gamma=0.0 colsample=0.7: val_auroc=0.8432 val_aucpr=0.7480 (best_iter=813)
+  gamma=0.0 colsample=0.8: val_auroc=0.8408 val_aucpr=0.7488 (best_iter=1357)
+  gamma=0.0 colsample=0.9: val_auroc=0.8418 val_aucpr=0.7473 (best_iter=919)
+  gamma=0.1 colsample=0.7: val_auroc=0.8426 val_aucpr=0.7487 (best_iter=1031)
+  gamma=0.1 colsample=0.8: val_auroc=0.8436 val_aucpr=0.7493 (best_iter=821)
+  gamma=0.1 colsample=0.9: val_auroc=0.8420 val_aucpr=0.7457 (best_iter=619)
+  gamma=0.3 colsample=0.7: val_auroc=0.8404 val_aucpr=0.7471 (best_iter=1065)
+  gamma=0.3 colsample=0.8: val_auroc=0.8424 val_aucpr=0.7486 (best_iter=944)
+  gamma=0.3 colsample=0.9: val_auroc=0.8425 val_aucpr=0.7474 (best_iter=828)
+Stage 3 winner: gamma=0.1, colsample_bytree=0.8
+
+=== Final training with winning hyperparameters ===
+Best iteration: 821
+
+RAW  Train AUROC=0.9306 AUPR=0.8776
+RAW  Val   AUROC=0.8436 AUPR=0.7493
+RAW  Test  AUROC=0.8026 AUPR=0.7164 F1=0.6216 Lift=2.34x
+Train->Test AUROC gap: 0.1280
+
+=== Isotonic calibration (fit on val) ===
+CAL  Test  AUROC=0.8026 AUPR=0.7122
+Test Brier raw=0.1579 -> calibrated=0.1493
+
+Confusion matrix (raw, best-F1 thr): {'threshold': 0.46112769842147827, 'tn': 720388, 'fp': 155722, 'fn': 141348, 'tp': 244044, 'precision': 0.6104671232671113, 'recall': 0.6332357703325445, 'accuracy': 0.7645108767168026}
+Confusion matrix (calibrated, best-F1 thr): {'threshold': 0.3041746914386749, 'tn': 718445, 'fp': 157665, 'fn': 140517, 'tp': 244875, 'precision': 0.6083246385452378, 'recall': 0.6353920164404036, 'accuracy': 0.7636293878249896}
+Confusion matrix (raw, thr=0.5): {'threshold': 0.5, 'tn': 751576, 'fp': 124534, 'fn': 156418, 'tp': 228974, 'precision': 0.6477194292632699, 'recall': 0.5941327271972433, 'accuracy': 0.7772877094130648}
+
+Top 15 features by gain:
+  ecoregion_id         gain=    192.48  14.73%
+  elevation_m          gain=    111.32  8.52%
+  hrrr_vpd             gain=     96.89  7.42%
+  avg_burn_prob        gain=     73.19  5.60%
+  road_dist_km         gain=     57.30  4.39%
+  powerline_dist_km    gain=     56.57  4.33%
+  rmin                 gain=     55.58  4.25%
+  sin_month            gain=     42.91  3.29%
+  whp                  gain=     41.43  3.17%
+  hrrr_mstav           gain=     33.88  2.59%
+  pop_density          gain=     33.74  2.58%
+  cos_month            gain=     30.79  2.36%
+  hrrr_tmp             gain=     28.54  2.18%
+  bp_x_vpd             gain=     28.09  2.15%
+  slope_deg            gain=     27.71  2.12%
+
+Saved model, calibrator, feature list, and results under C:\Users\Admin\Downloads\Texas ML Wildfire\TDIS_Ignition_BIT_V2
+Total runtime: 295.9s

@@ -1,0 +1,21 @@
+---
+alwaysApply: false
+---
+# Testing & Structure Rules
+- **Folder Structure**: Store ALL tests in a single root-level `__tests__` folder. 
+- **Mirroring**: The structure inside `__tests__` must mirror the `src/` (or root) directory.
+  - Example: `src/components/Button.js` -> `src/__tests__/Button.test.js`.
+- **Naming Convention**: Name files `<FileName>.test.js`.  
+- **Frameworks**: Use [Jest](https://jestjs.io) and [Supertest](https://github.com).
+- **Coverage Goal**: Maintain **80%+** global coverage (lines, branches, functions, statements) on all source files Jest collects under `src/`.
+- **Full suite (with coverage)**: From the repo root, run:
+  ```bash
+  npm test -- --coverage --watchAll=false
+  ```
+  Use this for regression checks and to read **Uncovered Lines** in the terminal report.
+
+# Automation Loop
+1. Create the `__tests__` directory if it doesn't exist.
+2. Write tests covering happy paths, edge cases, and error states.
+3. **Execute the full suite**: Run the command above so all tests run once and coverage is printed.
+4. If coverage is below 80%, use the Jest coverage output to find uncovered lines and add cases.

@@ -1,0 +1,463 @@
+/**
+ * Disclaimer Component Styles
+ * Full-screen overlay with two-panel layout
+ * Responsive design for desktop, tablet, and mobile
+ */
+
+/* Full-screen overlay */
+.disclaimer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+/* Main container */
+.disclaimer-container {
+  width: 80%;
+  max-width: 1200px;
+  height: 75vh;
+  min-height: 500px;
+  display: flex;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Left Panel */
+.disclaimer-left-panel {
+  flex: 0 0 40%;
+  background-color: #334755;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 2.5rem;
+  justify-content: space-between;
+}
+
+.disclaimer-background-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.1;
+  z-index: 0;
+}
+
+.disclaimer-left-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  padding: 2rem 0;
+}
+
+/* Logo Section Container */
+.disclaimer-logo-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* TDIS Logo Section - Top */
+.disclaimer-tdis-section {
+  flex: 0 0 auto;
+  margin-bottom: auto;
+}
+
+.disclaimer-tdis-logo {
+  max-width: 220px;
+  max-height: 120px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Texas A&M Logo Section - Middle */
+.disclaimer-tamu-section {
+  flex: 0 0 auto;
+  margin: 2rem 0;
+}
+
+.disclaimer-tamu-logo {
+  max-width: 260px;
+  max-height: 140px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* IDRT Logo Section - Bottom */
+.disclaimer-idrt-section {
+  flex: 0 0 auto;
+  margin-top: auto;
+  margin-bottom: 1rem;
+}
+
+.disclaimer-idrt-logo {
+  max-width: 220px;
+  max-height: 120px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Footer */
+.disclaimer-footer {
+  flex: 0 0 auto;
+  text-align: center;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.disclaimer-footer-text {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+/* Right Panel */
+.disclaimer-right-panel {
+  flex: 1;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding: 2.5rem;
+  overflow: hidden;
+}
+
+.disclaimer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Custom scrollbar for content area */
+.disclaimer-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.disclaimer-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.disclaimer-content::-webkit-scrollbar-thumb {
+  background: #c8d1d3;
+  border-radius: 3px;
+}
+
+.disclaimer-content::-webkit-scrollbar-thumb:hover {
+  background: #a8b5b8;
+}
+
+.disclaimer-welcome-text {
+  font-size: 0.875rem;
+  color: #334755;
+  margin: 0 0 0.5rem 0;
+  font-weight: 400;
+}
+
+.disclaimer-welcome-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #334755;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.2;
+}
+
+.disclaimer-information-text {
+  font-size: 0.9375rem;
+  color: #334755;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+}
+
+.disclaimer-information-link {
+  color: #dc3545;
+  text-decoration: underline;
+  font-size: 0.9375rem;
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s ease;
+}
+
+.disclaimer-information-link:hover {
+  color: #c82333;
+}
+
+.disclaimer-disclaimer-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #334755;
+  margin: 1.5rem 0 1rem 0;
+}
+
+.disclaimer-disclaimer-text {
+  font-size: 0.875rem;
+  color: #334755;
+  line-height: 1.7;
+}
+
+.disclaimer-disclaimer-text p {
+  margin: 0 0 1rem 0;
+}
+
+.disclaimer-disclaimer-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* Button Container */
+.disclaimer-button-container {
+  flex-shrink: 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid #c8d1d3;
+  margin-top: auto;
+}
+
+.disclaimer-accept-button {
+  width: 100%;
+  padding: 1rem 2rem;
+  background-color: #334755;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.disclaimer-accept-button:hover {
+  background-color: #22323c;
+  transform: translateY(-1px);
+}
+
+.disclaimer-accept-button:active {
+  transform: translateY(0);
+}
+
+/* Tablet Styles (≤1024px) */
+@media (max-width: 1024px) {
+  .disclaimer-container {
+    width: 85%;
+    height: 80vh;
+  }
+
+  .disclaimer-left-panel {
+    padding: 2rem;
+  }
+
+  .disclaimer-left-content {
+    padding: 1.5rem 0;
+  }
+
+  .disclaimer-tdis-logo {
+    max-width: 180px;
+    max-height: 100px;
+  }
+
+  .disclaimer-tamu-logo {
+    max-width: 210px;
+    max-height: 115px;
+  }
+
+  .disclaimer-idrt-logo {
+    max-width: 180px;
+    max-height: 100px;
+  }
+
+  .disclaimer-tamu-section {
+    margin: 1.5rem 0;
+  }
+
+  .disclaimer-right-panel {
+    padding: 2rem;
+  }
+
+  .disclaimer-welcome-title {
+    font-size: 1.75rem;
+  }
+
+  .disclaimer-disclaimer-title {
+    font-size: 1.125rem;
+  }
+}
+
+/* Mobile Styles (≤768px) */
+@media (max-width: 768px) {
+  .disclaimer-overlay {
+    padding: 0.5rem;
+  }
+
+  .disclaimer-container {
+    width: 90%;
+    height: 90vh;
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .disclaimer-left-panel {
+    flex: 0 0 auto;
+    padding: 1.5rem;
+    min-height: 300px;
+  }
+
+  .disclaimer-left-content {
+    padding: 1rem 0;
+  }
+
+  .disclaimer-tdis-logo {
+    max-width: 150px;
+    max-height: 80px;
+  }
+
+  .disclaimer-tamu-logo {
+    max-width: 175px;
+    max-height: 95px;
+  }
+
+  .disclaimer-idrt-logo {
+    max-width: 150px;
+    max-height: 80px;
+  }
+
+  .disclaimer-tamu-section {
+    margin: 1rem 0;
+  }
+
+  .disclaimer-idrt-section {
+    margin-bottom: 0.5rem;
+  }
+
+  .disclaimer-footer-text {
+    font-size: 0.75rem;
+  }
+
+  .disclaimer-right-panel {
+    flex: 1;
+    padding: 1.5rem;
+    min-height: 0;
+  }
+
+  .disclaimer-welcome-text {
+    font-size: 0.8rem;
+  }
+
+  .disclaimer-welcome-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .disclaimer-information-text {
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .disclaimer-disclaimer-title {
+    font-size: 1rem;
+    margin: 1rem 0 0.75rem 0;
+  }
+
+  .disclaimer-disclaimer-text {
+    font-size: 0.8125rem;
+  }
+
+  .disclaimer-button-container {
+    padding-top: 1rem;
+  }
+
+  .disclaimer-accept-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9375rem;
+  }
+}
+
+/* Small Mobile Styles (≤480px) */
+@media (max-width: 480px) {
+  .disclaimer-container {
+    width: 95%;
+    height: 95vh;
+  }
+
+  .disclaimer-left-panel {
+    padding: 1rem;
+    min-height: 250px;
+  }
+
+  .disclaimer-left-content {
+    padding: 0.75rem 0;
+  }
+
+  .disclaimer-tdis-logo {
+    max-width: 120px;
+    max-height: 65px;
+  }
+
+  .disclaimer-tamu-logo {
+    max-width: 140px;
+    max-height: 75px;
+  }
+
+  .disclaimer-idrt-logo {
+    max-width: 120px;
+    max-height: 65px;
+  }
+
+  .disclaimer-tamu-section {
+    margin: 0.75rem 0;
+  }
+
+  .disclaimer-idrt-section {
+    margin-bottom: 0.5rem;
+  }
+
+  .disclaimer-footer-text {
+    font-size: 0.7rem;
+  }
+
+  .disclaimer-right-panel {
+    padding: 1rem;
+  }
+
+  .disclaimer-welcome-title {
+    font-size: 1.25rem;
+  }
+
+  .disclaimer-disclaimer-title {
+    font-size: 0.9375rem;
+  }
+
+  .disclaimer-disclaimer-text {
+    font-size: 0.75rem;
+  }
+
+  .disclaimer-accept-button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+}

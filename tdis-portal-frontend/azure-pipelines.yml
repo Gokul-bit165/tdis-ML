@@ -1,0 +1,316 @@
+# Azure DevOps pipeline: TDIS Portal Frontend (Vite + React) → ESLint → SonarQube → Vitest (coverage) → Semgrep → build (Key Vault VITE_*) → Static Web Apps.
+#
+# Pull requests
+# -------------
+# Runs ESLint, tests (with coverage), SonarQube, Semgrep, and production build on every PR to `development` or `main`.
+# Does **not** deploy to SWA (deploy tasks are gated with `ne(variables['Build.Reason'], 'PullRequest')`).
+# PR builds load `tdis-portal-frontend-dev-vg` for Azure subscription / Key Vault / SWA token context.
+#
+# Deployment branches (push only)
+# -------------------------------
+# SWA deploy runs only on pushes to `development`, `main`, or `release/*` — never on PRs or feature branches.
+#
+# Build-time configuration
+# ------------------------
+# Vite bakes `import.meta.env.VITE_*` at build time. Secrets and endpoints are fetched from Azure Key Vault
+# (subscription + vault name come from the linked variable group per branch).
+#
+# Prerequisites
+# -------------
+# - SonarQube: extension + service connection (`sonarQubeServiceConnection`).
+# - Variable groups: `tdis-portal-frontend-dev-vg` (development / PR), `tdis-portal-frontend-prod-vg` (main / release/*).
+#   Each group must define `subscription`, `keyvault`, and `AZURE_STATIC_WEB_APPS_API_TOKEN` for its environment.
+#
+# Quality gates (temporary)
+# -------------------------
+# HD-14677 — ESLint, Vitest, SonarQube, and Semgrep are skipped until resolved:
+# https://helpdesk.cloud.tdis.io/web#id=14677
+# Set `failOnSecurityCheckFailures` to `true` when the ticket is closed (pipeline fails on gate errors).
+
+trigger:
+  branches:
+    include:
+      - development
+      - main
+      - release/*
+      - tdis-ai-staging
+
+pr:
+  branches:
+    include:
+      - development
+      - main
+      - tdis-ai-staging
+
+variables:
+  # Vitest 4 requires Node ^20 || ^22 || >=24 (see node_modules/vitest engines).
+  - name: nodeVersion
+    value: '20.x'
+  - name: sonarQubeServiceConnection
+    value: 'SonarQube'
+  # HD-14677 — set to true when ESLint / Vitest / Semgrep debt is cleared.
+  - name: failOnSecurityCheckFailures
+    value: 'true'
+  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+      - group: tdis-portal-frontend-dev-vg
+  - ${{ if and(ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/development')) }}:
+      - group: tdis-portal-frontend-dev-vg
+  - ${{ if and(ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/tdis-ai-staging')) }}:
+      - group: tdis-portal-frontend-stage-vg
+  - ${{ if and(ne(variables['Build.Reason'], 'PullRequest'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))) }}:
+      - group: tdis-portal-frontend-prod-vg
+  # Wait for the quality gate on PRs and non-deploy branches; skip on development / tdis-ai-staging / main / release/* pushes.
+  - name: shouldWaitGate
+    value: $[ or(eq(variables['Build.Reason'], 'PullRequest'), and(ne(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.SourceBranch'], 'refs/heads/development'), ne(variables['Build.SourceBranch'], 'refs/heads/tdis-ai-staging'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))) ]
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - task: UseNode@1
+    inputs:
+      version: '$(nodeVersion)'
+    displayName: 'Use Node.js $(nodeVersion)'
+  - script: |
+      set -euo pipefail
+      npm ci --legacy-peer-deps
+    displayName: 'npm ci'
+  # HD-14677 — re-enable when helpdesk ticket is resolved.
+  - script: |
+      set -euo pipefail
+      npm run lint -- --max-warnings 0
+    displayName: 'ESLint'
+    continueOnError: ${{ eq(variables['failOnSecurityCheckFailures'], 'false') }}
+
+  - task: SonarQubePrepare@8
+    inputs:
+      SonarQube: '$(sonarQubeServiceConnection)'
+      scannerMode: 'CLI'
+      configMode: 'file'
+      configFile: 'sonar-project.properties'
+      extraProperties: |
+        sonar.qualitygate.wait=$(shouldWaitGate)
+    displayName: 'SonarQube — Prepare analysis'
+    continueOnError: ${{ eq(variables['failOnSecurityCheckFailures'], 'false') }}
+
+  # HD-14677 — re-enable when helpdesk ticket is resolved.
+  - script: |
+      set -euo pipefail
+      npm run test:ci
+    displayName: 'Vitest (with coverage for Sonar)'
+    continueOnError: ${{ eq(variables['failOnSecurityCheckFailures'], 'false') }}
+
+  - task: SonarQubeAnalyze@8
+    displayName: 'SonarQube — Run scanner'
+    continueOnError: ${{ eq(variables['failOnSecurityCheckFailures'], 'false') }}
+
+  - task: SonarQubePublish@8
+    displayName: 'SonarQube — Publish quality gate result'
+    condition: eq(variables['shouldWaitGate'], 'true')
+    continueOnError: ${{ eq(variables['failOnSecurityCheckFailures'], 'false') }}
+
+  - task: AzureCLI@2
+    env:
+      BUILD_SOURCE_BRANCH: $(Build.SourceBranch)
+      BUILD_SOURCE_BRANCH_NAME: $(Build.SourceBranchName)
+      AI_ASSISTANT_API_URL_SECRET_NAME: $(ai_assistant_api_url_secret_name)
+      VITE_AI_API_URL_FROM_VG: $(vite_ai_api_url)
+    inputs:
+      azureSubscription: $(subscription)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+        echo "Fetching secrets from Azure Key Vault..."
+
+        mapbox_token=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-mapbox-token --query value -o tsv)
+        google_analytics_key=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-google-analytics-key --query value -o tsv)
+        odoo_api_key=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-odoo-api-key --query value -o tsv)
+        cube_base_url=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-cube-base-url --query value -o tsv)
+        cube_api_secret=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-cube-api-secret --query value -o tsv)
+        portal_api_url=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-api-url --query value -o tsv)
+        tdis_helpdesk_api_url=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-helpdesk-api-url --query value -o tsv)
+        tile_server_base_url=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-tile-server-base-url --query value -o tsv)
+        portal_api_new_url=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-api-new-url --query value -o tsv)
+        portal_api_new_key=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-api-new-key --query value -o tsv)
+        # RAMP points-of-interest (schools / hospitals / fire stations GeoJSON)
+        ramp_api_root=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-dev-ramp-api-root --query value -o tsv)
+        # TDIS AI Assistant base URL (threads + SSE under `/queries/*`).
+        # Stage branches use dedicated Key Vault secrets (`*-stage`) — same vault as dev, different values.
+        BRANCH="${BUILD_SOURCE_BRANCH_NAME}"
+        SOURCE_BRANCH="${BUILD_SOURCE_BRANCH}"
+        is_stage_branch=false
+        case "$SOURCE_BRANCH" in
+          refs/heads/tdis-ai-staging|refs/heads/feature/ai-swa-databricks-proxy) is_stage_branch=true ;;
+        esac
+        if [ "$is_stage_branch" = false ]; then
+          case "$BRANCH" in
+            tdis-ai-staging|feature/ai-swa-databricks-proxy) is_stage_branch=true ;;
+          esac
+        fi
+
+        # Azure DevOps leaves literal "$(var_name)" when a VG variable is unset — treat those as empty.
+        is_resolved_var() {
+          local val="$1"
+          [[ -n "$val" ]] && [[ ! "$val" =~ \$ ]]
+        }
+
+        is_valid_ai_api_url() {
+          local url="$1"
+          is_resolved_var "$url" && [[ "$url" =~ ^https:// ]]
+        }
+
+        is_valid_kv_secret_name() {
+          local name="$1"
+          is_resolved_var "$name" && [[ "$name" =~ ^[a-zA-Z0-9-]+$ ]]
+        }
+
+        if [ "$is_stage_branch" = true ]; then
+          AI_API_SECRET_NAME="tdis-portal-ai-assistant-api-url-stage"
+        elif is_valid_kv_secret_name "${AI_ASSISTANT_API_URL_SECRET_NAME:-}"; then
+          AI_API_SECRET_NAME="${AI_ASSISTANT_API_URL_SECRET_NAME}"
+        else
+          if [ -n "${AI_ASSISTANT_API_URL_SECRET_NAME:-}" ]; then
+            echo "##vso[task.logissue type=warning]Ignoring invalid ai_assistant_api_url_secret_name override (got: ${AI_ASSISTANT_API_URL_SECRET_NAME})"
+          fi
+          AI_API_SECRET_NAME="tdis-portal-ai-assistant-api-url"
+        fi
+
+        if [ "$is_stage_branch" = true ]; then
+          echo "Stage branch — fetching vite_ai_api_url from Key Vault secret: $AI_API_SECRET_NAME (ref: $SOURCE_BRANCH)"
+          vite_ai_api_url=$(az keyvault secret show --vault-name "$(keyvault)" --name "$AI_API_SECRET_NAME" --query value -o tsv)
+        elif is_valid_ai_api_url "${VITE_AI_API_URL_FROM_VG:-}"; then
+          vite_ai_api_url="${VITE_AI_API_URL_FROM_VG}"
+          echo "Using vite_ai_api_url from variable group (branch: $BRANCH)"
+        else
+          if [ -n "${VITE_AI_API_URL_FROM_VG:-}" ]; then
+            echo "##vso[task.logissue type=warning]Ignoring invalid vite_ai_api_url override (expected https:// URL, got: ${VITE_AI_API_URL_FROM_VG})"
+          fi
+          echo "Fetching vite_ai_api_url from Key Vault secret: $AI_API_SECRET_NAME (branch: $BRANCH)"
+          vite_ai_api_url=$(az keyvault secret show --vault-name "$(keyvault)" --name "$AI_API_SECRET_NAME" --query value -o tsv)
+        fi
+
+        if ! is_valid_ai_api_url "$vite_ai_api_url"; then
+          echo "##vso[task.logissue type=error]Invalid vite_ai_api_url after resolution: ${vite_ai_api_url:-<empty>}"
+          exit 1
+        fi
+        echo "Resolved vite_ai_api_url host: $(echo "$vite_ai_api_url" | sed -E 's#^https?://([^/]+).*#\1#')"
+
+        # Keycloak realm — stage branches use a dedicated Key Vault secret (same vault, different value).
+        if [ "$is_stage_branch" = true ]; then
+          KEYCLOAK_REALM_SECRET_NAME="tdis-portal-keycloak-realm-stage"
+        else
+          KEYCLOAK_REALM_SECRET_NAME="tdis-portal-keycloak-realm"
+        fi
+        if [ "$is_stage_branch" = true ]; then
+          echo "Stage branch — fetching keycloak_realm from Key Vault secret: $KEYCLOAK_REALM_SECRET_NAME (ref: $SOURCE_BRANCH)"
+        else
+          echo "Fetching keycloak_realm from Key Vault secret: $KEYCLOAK_REALM_SECRET_NAME (branch: $BRANCH)"
+        fi
+
+        keycloak_url=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-keycloak-url --query value -o tsv)
+        keycloak_realm=$(az keyvault secret show --vault-name "$(keyvault)" --name "$KEYCLOAK_REALM_SECRET_NAME" --query value -o tsv)
+        keycloak_client_id=$(az keyvault secret show --vault-name "$(keyvault)" --name tdis-portal-keycloak-client-id --query value -o tsv)
+        echo "Resolved keycloak_realm: $keycloak_realm"
+
+        echo "##vso[task.setvariable variable=mapbox_token]$mapbox_token"
+        echo "##vso[task.setvariable variable=google_analytics_key]$google_analytics_key"
+        echo "##vso[task.setvariable variable=odoo_api_key]$odoo_api_key"
+        echo "##vso[task.setvariable variable=cube_base_url]$cube_base_url"
+        echo "##vso[task.setvariable variable=cube_api_secret]$cube_api_secret"
+        echo "##vso[task.setvariable variable=portal_api_url]$portal_api_url"
+        echo "##vso[task.setvariable variable=tdis_helpdesk_api_url]$tdis_helpdesk_api_url"
+        echo "##vso[task.setvariable variable=tile_server_base_url]$tile_server_base_url"
+        echo "##vso[task.setvariable variable=portal_api_new_url]$portal_api_new_url"
+        echo "##vso[task.setvariable variable=portal_api_new_key]$portal_api_new_key"
+        echo "##vso[task.setvariable variable=ramp_api_root]$ramp_api_root"
+        echo "##vso[task.setvariable variable=vite_ai_api_url]$vite_ai_api_url"
+        echo "##vso[task.setvariable variable=keycloak_url]$keycloak_url"
+        echo "##vso[task.setvariable variable=keycloak_realm]$keycloak_realm"
+        echo "##vso[task.setvariable variable=keycloak_client_id]$keycloak_client_id"
+    displayName: 'Get secrets from Azure Key Vault'
+  - script: |
+      set -euo pipefail
+      if [[ "$(Build.SourceBranch)" == "refs/heads/main" ]] || [[ "$(Build.SourceBranch)" =~ ^refs/heads/release/ ]]; then
+        export VITE_ENABLE_TDIS_AI=false
+      else
+        export VITE_ENABLE_TDIS_AI=true
+      fi
+      echo "VITE_ENABLE_TDIS_AI=$VITE_ENABLE_TDIS_AI (branch: $(Build.SourceBranch))"
+
+      # Active Weather Events Beta tab — default disabled; override via VG `vite_enable_active_weather_events_beta`.
+      VG_BETA_FLAG="${VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA_FROM_VG:-}"
+      if [[ -n "$VG_BETA_FLAG" ]] && [[ ! "$VG_BETA_FLAG" =~ \$ ]]; then
+        export VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA="$VG_BETA_FLAG"
+      else
+        export VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA=false
+      fi
+      echo "VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA=$VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA (branch: $(Build.SourceBranch))"
+
+      npm run build
+      cp staticwebapp.config.json dist/staticwebapp.config.json
+    env:
+      VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA_FROM_VG: $(vite_enable_active_weather_events_beta)
+      VITE_MAPBOX_TOKEN: $(mapbox_token)
+      VITE_CUBE_API_BASE_URL: $(cube_base_url)
+      VITE_GOOGLE_ANALYTICS_TRACKING_ID: $(google_analytics_key)
+      VITE_TDIS_API_KEY: $(odoo_api_key)
+      VITE_CUBEJS_TOKEN: $(cube_api_secret)
+      VITE_API_URL: $(portal_api_new_url)
+      VITE_EMAIL_API_URL: $(portal_api_url)
+      VITE_AI_API_URL: $(vite_ai_api_url)
+      VITE_TDIS_HELPDESK_API_URL: $(tdis_helpdesk_api_url)
+      VITE_TILE_SERVER_BASE_URL: $(tile_server_base_url)
+      VITE_RAMP_API_ROOT: $(ramp_api_root)
+      VITE_EVENTS_API_KEY: $(portal_api_new_key)
+      VITE_KEYCLOAK_URL: $(keycloak_url)
+      VITE_KEYCLOAK_REALM: $(keycloak_realm)
+      VITE_KEYCLOAK_CLIENT_ID: $(keycloak_client_id)
+    displayName: 'Production build (dist/) — VITE_* from Key Vault'
+  # HD-14677 — re-enable when helpdesk ticket is resolved.
+  - script: |
+      set -euo pipefail
+      python -m pip install semgrep
+
+      echo "-------------------------------------------------------"
+      echo "Running Semgrep Security Scan..."
+      echo "Note: The build will fail if high-severity issues are found."
+      echo "-------------------------------------------------------"
+
+      # Disable unsafe-formatstring: flags console/util.format template literals as style,
+      # not actionable security for this SPA (agreed on PR #121).
+      semgrep scan --config auto --error --verbose \
+        --exclude-rule javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
+    displayName: 'Semgrep Security Scan'
+    continueOnError: ${{ eq(variables['failOnSecurityCheckFailures'], 'false') }}
+
+  - task: AzureStaticWebApp@0
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/development'))
+    inputs:
+      app_location: dist
+      api_location: ''
+      output_location: ''
+      skip_app_build: true
+      azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
+    displayName: 'Deploy SWA (development)'
+  - task: AzureStaticWebApp@0
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/tdis-ai-staging'))
+    inputs:
+      app_location: dist
+      api_location: ''
+      output_location: ''
+      skip_app_build: true
+      azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
+    displayName: 'Deploy SWA (tdis-ai-staging)'
+  - task: AzureStaticWebApp@0
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))
+    inputs:
+      app_location: dist
+      api_location: ''
+      output_location: ''
+      skip_app_build: true
+      azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
+    displayName: 'Deploy SWA (main / release/*)'
