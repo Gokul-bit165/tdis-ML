@@ -1,0 +1,8 @@
+{
+  "event_name": "Synthetic storm (test data)",
+  "aoi_name": "Greater Houston (synthetic)",
+  "imagery_date": "2026-10-08",
+  "model": "synthetic-generator",
+  "footprint_set": "synthetic_houston",
+  "data_source": "synthetic"
+}
