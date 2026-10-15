@@ -17,8 +17,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
+!tdis-portal-frontend/src/lib/
 parts/
 sdist/
 var/

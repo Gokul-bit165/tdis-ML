@@ -35,6 +35,12 @@ The following environment variables are required to run the project:
    - Purpose: Base URL **only** for the Contact Us and email-subscribe mutations in `src/services/api.js`.
    - If unset, those mutations reuse `VITE_API_URL`.
 
+9. `VITE_DAMAGE_API_URL` _(optional locally)_
+   - Purpose: Base URL for the TDIS Damage Assessment API (`tdis-damage-api`). Defaults to `http://localhost:8002`.
+
+10. `VITE_ENABLE_DAMAGE_ASSESSMENT` _(optional)_
+   - Purpose: Build-time flag to show the Damage Assessment tab. Unset: shown in `npm run dev` only. Set `true` to enable or `false` to disable.
+
 ## Notes — Portal vs email API (CI)
 
 These are reminders for onboarding and deployments; authoritative wiring lives in [`azure-pipelines.yml`](azure-pipelines.yml).

@@ -69,19 +69,20 @@ describe('TabNavigation', () => {
     Element.prototype.scrollIntoView = vi.fn();
     vi.stubEnv('VITE_ENABLE_TDIS_AI', 'false');
     vi.stubEnv('VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA', 'false');
+    vi.stubEnv('VITE_ENABLE_DAMAGE_ASSESSMENT', 'false');
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it('renders four tabs', () => {
+  it('renders default tabs', () => {
     const setActiveTab = vi.fn();
     renderTabNavigation(
       <TabNavigation activeTab="active-weather-events" setActiveTab={setActiveTab} />
     );
     const tabs = screen.getAllByRole('tab');
-    expect(tabs).toHaveLength(4);
+    expect(tabs).toHaveLength(5);
   });
 
   it('calls setActiveTab when tab is clicked', async () => {
@@ -120,8 +121,20 @@ describe('TabNavigation', () => {
   it('includes the Live Weather beta tab when its flag is on', () => {
     vi.stubEnv('VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA', FLAG_ON);
     renderTabNavigation(<TabNavigation activeTab="hmed" setActiveTab={() => {}} />);
-    expect(screen.getAllByRole('tab')).toHaveLength(5);
+    expect(screen.getAllByRole('tab')).toHaveLength(6);
     expect(screen.getByText('Live Weather — Beta')).toBeInTheDocument();
+  });
+
+  it('includes the Damage Assessment tab when its flag is on', () => {
+    vi.stubEnv('VITE_ENABLE_DAMAGE_ASSESSMENT', FLAG_ON);
+    renderTabNavigation(<TabNavigation activeTab="hmed" setActiveTab={() => {}} />);
+    expect(screen.getByText('Damage Assessment')).toBeInTheDocument();
+  });
+
+  it('hides the Damage Assessment tab when its flag is off', () => {
+    vi.stubEnv('VITE_ENABLE_DAMAGE_ASSESSMENT', 'false');
+    renderTabNavigation(<TabNavigation activeTab="hmed" setActiveTab={() => {}} />);
+    expect(screen.queryByText('Damage Assessment')).not.toBeInTheDocument();
   });
 
   describe('TDIS AI pill', () => {

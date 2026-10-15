@@ -1,0 +1,9 @@
+.venv
+_local
+__pycache__
+*.pyc
+.pytest_cache
+tests
+synth_damage.py
+requirements-dev.txt
+README.md

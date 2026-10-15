@@ -250,10 +250,20 @@ steps:
       fi
       echo "VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA=$VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA (branch: $(Build.SourceBranch))"
 
+      # Damage Assessment tab — default disabled; override via VG `vite_enable_damage_assessment`.
+      VG_DAMAGE_FLAG="${VITE_ENABLE_DAMAGE_ASSESSMENT_FROM_VG:-}"
+      if [[ -n "$VG_DAMAGE_FLAG" ]] && [[ ! "$VG_DAMAGE_FLAG" =~ \$ ]]; then
+        export VITE_ENABLE_DAMAGE_ASSESSMENT="$VG_DAMAGE_FLAG"
+      else
+        export VITE_ENABLE_DAMAGE_ASSESSMENT=false
+      fi
+      echo "VITE_ENABLE_DAMAGE_ASSESSMENT=$VITE_ENABLE_DAMAGE_ASSESSMENT (branch: $(Build.SourceBranch))"
+
       npm run build
       cp staticwebapp.config.json dist/staticwebapp.config.json
     env:
       VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA_FROM_VG: $(vite_enable_active_weather_events_beta)
+      VITE_ENABLE_DAMAGE_ASSESSMENT_FROM_VG: $(vite_enable_damage_assessment)
       VITE_MAPBOX_TOKEN: $(mapbox_token)
       VITE_CUBE_API_BASE_URL: $(cube_base_url)
       VITE_GOOGLE_ANALYTICS_TRACKING_ID: $(google_analytics_key)
@@ -262,6 +272,8 @@ steps:
       VITE_API_URL: $(portal_api_new_url)
       VITE_EMAIL_API_URL: $(portal_api_url)
       VITE_AI_API_URL: $(vite_ai_api_url)
+      VITE_IGNITION_API_URL: $(ignition_api_url)
+      VITE_DAMAGE_API_URL: $(damage_api_url)
       VITE_TDIS_HELPDESK_API_URL: $(tdis_helpdesk_api_url)
       VITE_TILE_SERVER_BASE_URL: $(tile_server_base_url)
       VITE_RAMP_API_ROOT: $(ramp_api_root)

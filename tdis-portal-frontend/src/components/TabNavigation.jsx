@@ -8,7 +8,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import './TabNavigation.css';
 import { useNavigate } from 'react-router-dom';
-import { BotMessageSquare, CloudLightning, CloudRain, Droplets, Flame, Zap } from 'lucide-react';
+import { BotMessageSquare, CloudLightning, CloudRain, Droplets, Flame, ShieldAlert, Zap } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useKeycloak } from '@/hooks/useKeycloak';
 import CustomTooltip from './ui/CustomTooltip';
@@ -18,7 +18,9 @@ import { isAdmin, isSuperAdmin } from '@/lib/roles';
 import {
     ACTIVE_WEATHER_EVENTS_BETA_TAB,
     AI_ASSISTANT_TAB,
+    DAMAGE_ASSESSMENT_TAB,
     isActiveWeatherEventsBetaEnabled,
+    isDamageAssessmentEnabled,
     isTdisAiEnabled,
 } from '@/config/featureFlags';
 import { trackEvent, NAVIGATION } from '../utils/googleAnalytics.js';
@@ -67,6 +69,13 @@ const mapTabsConfig = [
         shortLabel: 'Fire',
         icon: Flame,
         iconColor: '#ef4444'
+    },
+    {
+        value: DAMAGE_ASSESSMENT_TAB,
+        label: 'Damage Assessment',
+        shortLabel: 'Damage',
+        icon: ShieldAlert,
+        iconColor: '#b91c1c'
     }
 ];
 
@@ -130,6 +139,7 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
     const showTdisAi = isTdisAiEnabled();
     const mapTabs = mapTabsConfig.filter((tab) => {
         if (tab.value === ACTIVE_WEATHER_EVENTS_BETA_TAB) return isActiveWeatherEventsBetaEnabled();
+        if (tab.value === DAMAGE_ASSESSMENT_TAB) return isDamageAssessmentEnabled();
         return true;
     });
     const isAiActive = showTdisAi && activeTab === assistantTabConfig.value;

@@ -1,0 +1,26 @@
+# Local PostGIS for developing and testing the Damage Assessment feature. Not used in Azure.
+# Migration 043 is applied automatically the first time the volume is created.
+#   docker compose up -d        start (port 5544)
+#   docker compose down -v      stop and delete the data
+services:
+  damage-db:
+    image: postgis/postgis:16-3.4
+    container_name: tdis-damage-db
+    environment:
+      POSTGRES_USER: damage
+      POSTGRES_PASSWORD: damage
+      POSTGRES_DB: damage
+    ports:
+      - "5544:5432"
+    volumes:
+      - damage_pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d/migrations:ro
+      - ./initdb.sh:/docker-entrypoint-initdb.d/20_damage_migrations.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U damage -d damage"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  damage_pgdata:
