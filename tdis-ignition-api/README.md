@@ -52,7 +52,7 @@ identity `id-wildfire-job`; storage `datatexas`. Ship code with `az acr build ..
 
 ```powershell
 python -m venv .venv; .\.venv\Scripts\pip install -r requirements.txt
-$env:DATABASE_URL = "postgresql://..."; $env:AUTO_MIGRATE = "1"      # AUTO_MIGRATE applies migration 042 (dev only)
+$env:DATABASE_URL = "postgresql://..."; $env:AUTO_MIGRATE = "1"      # AUTO_MIGRATE applies migrations 042 and 043 (dev only)
 $env:FEATURES_URI = "_local\in"; .\.venv\Scripts\python score_job.py
 .\.venv\Scripts\python -m uvicorn main:app --port 8001
 ```

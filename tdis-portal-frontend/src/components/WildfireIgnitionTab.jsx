@@ -107,6 +107,7 @@ const WildfireIgnitionTab = () => {
   const mapRef = useRef(null);
   const lastFetchRef = useRef({ res: null, window: null });
   const requestIdRef = useRef(0);
+  const abortRef = useRef(null);
   const debounceRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [data, setData] = useState(null);
@@ -127,9 +128,12 @@ const WildfireIgnitionTab = () => {
 
     const window = needsWindow ? paddedWindow(bounds, WINDOW_PADDING) : null;
     const requestId = ++requestIdRef.current;
+    abortRef.current?.abort(); // stop the superseded request so it does not keep the server busy
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     setError(null);
-    getIgnitionCoverage(undefined, res, window)
+    getIgnitionCoverage(undefined, res, window, controller.signal)
       .then((result) => {
         if (requestId !== requestIdRef.current) return; // a newer request superseded this one
         lastFetchRef.current = { res, window };
@@ -198,6 +202,7 @@ const WildfireIgnitionTab = () => {
     return () => {
       clearTimeout(debounceRef.current);
       requestIdRef.current += 1; // drop any in-flight response
+      abortRef.current?.abort();
       map.remove();
       mapRef.current = null;
     };

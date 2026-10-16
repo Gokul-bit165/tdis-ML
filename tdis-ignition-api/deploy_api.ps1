@@ -15,7 +15,7 @@ $cid = & $az identity show -g $rg -n $identity --query clientId -o tsv
     --environment managedEnvironment-tdisrg-b1be `
     --image "$acr.azurecr.io/wildfire-ignition:$Tag" `
     --registry-server "$acr.azurecr.io" --registry-identity $rid --user-assigned $rid `
-    --target-port 8000 --ingress external --min-replicas 0 --max-replicas 2 --cpu 1 --memory 2Gi `
+    --target-port 8000 --ingress external --min-replicas 1 --max-replicas 2 --cpu 1 --memory 2Gi `
     --env-vars "RUN_MODE=api" "PREDICTIONS_URI=az://datatexas/wildfire-data/predictions" "AZURE_CLIENT_ID=$cid" "MODEL_DIR=/app/model" "BIT_DIR=/nonexistent" "CORS_ORIGINS=$cors" `
     --query "properties.configuration.ingress.fqdn" -o tsv
 

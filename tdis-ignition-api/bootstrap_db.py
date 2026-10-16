@@ -54,6 +54,8 @@ def main() -> int:
 
     conn.execute((SQL_DIR / "042_create_wildfire_ignition_tables.sql").read_text(encoding="utf-8"))
     print("migration 042 applied")
+    conn.execute((SQL_DIR / "043_create_wildfire_ignition_hexes.sql").read_text(encoding="utf-8"))
+    print("migration 043 applied")
 
     # The job reads data_sources and updates its own batch_jobs row.
     conn.execute("GRANT SELECT ON data_sources TO ed_app_admin")
@@ -63,7 +65,7 @@ def main() -> int:
         "SELECT tablename FROM pg_tables WHERE tablename LIKE 'wildfire_ignition%' ORDER BY 1")]
     source = conn.execute("SELECT count(*) FROM data_sources WHERE data_source = 'Wildfire Ignition Model'").fetchone()[0]
     job = conn.execute("SELECT count(*) FROM batch_jobs WHERE batch_job = 'Wildfire Ignition Scoring Job'").fetchone()[0]
-    if tables != ["wildfire_ignition_cells", "wildfire_ignition_runs"] or source != 1 or job != 1:
+    if tables != ["wildfire_ignition_cells", "wildfire_ignition_hexes", "wildfire_ignition_runs"] or source != 1 or job != 1:
         print(f"VERIFY FAILED: tables={tables} data_source_rows={source} batch_job_rows={job}", file=sys.stderr)
         return 1
     print(f"verified: tables {tables}, 1 data source row, 1 batch job row")

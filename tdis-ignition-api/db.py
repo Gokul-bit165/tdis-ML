@@ -20,11 +20,10 @@ from psycopg.rows import dict_row
 KEEP_RUNS = int(os.environ.get("KEEP_RUNS", "30"))
 PARENT_RESOLUTIONS = (4, 5, 6, 7)  # res 8 is the cell itself
 
-MIGRATION = Path(os.environ.get(
-    "MIGRATION_FILE",
-    Path(__file__).resolve().parent.parent / "tdis-portal-db" / "migrations" / "042_create_wildfire_ignition_tables.sql",
-))
-RUNS, CELLS = "wildfire_ignition_runs", "wildfire_ignition_cells"
+MIGRATIONS_DIR = Path(os.environ.get(
+    "MIGRATIONS_DIR", Path(__file__).resolve().parent.parent / "tdis-portal-db" / "migrations"))
+MIGRATIONS = ("042_create_wildfire_ignition_tables.sql", "043_create_wildfire_ignition_hexes.sql")
+RUNS, CELLS, HEXES = "wildfire_ignition_runs", "wildfire_ignition_cells", "wildfire_ignition_hexes"
 BATCH_JOB = "Wildfire Ignition Scoring Job"
 DATA_SOURCE = "Wildfire Ignition Model"
 
@@ -40,17 +39,19 @@ def connect(url: str | None = None, **kw) -> psycopg.Connection:
 
 
 def ensure_schema(conn: psycopg.Connection) -> None:
-    """Check that migration 042 has been applied. The tables live in the shared TDIS database, so the
-    job does not create them itself; AUTO_MIGRATE=1 applies the migration file (dev and tests only)."""
+    """Check that migrations 042 and 043 have been applied. The tables live in the shared TDIS database, so the
+    job does not create them itself; AUTO_MIGRATE=1 applies the migration files (dev and tests only)."""
     def missing():
-        return [t for t in (RUNS, CELLS) if conn.execute("SELECT to_regclass(%s)", (t,)).fetchone()[0] is None]
+        return [t for t in (RUNS, CELLS, HEXES) if conn.execute("SELECT to_regclass(%s)", (t,)).fetchone()[0] is None]
 
     if missing() and os.environ.get("AUTO_MIGRATE") == "1":
         with conn.transaction():
-            conn.execute(MIGRATION.read_text(encoding="utf-8"))
+            for name in MIGRATIONS:
+                conn.execute((MIGRATIONS_DIR / name).read_text(encoding="utf-8"))
     if missing():
         raise RuntimeError(f"tables {missing()} not found: apply tdis-portal-db/migrations/"
-                           "042_create_wildfire_ignition_tables.sql (node migrate.js) first")
+                           "042_create_wildfire_ignition_tables.sql and 043_create_wildfire_ignition_hexes.sql "
+                           "(node migrate.js) first")
 
 
 LOCK_KEY = 4204201  # advisory lock so two scoring runs never overlap
@@ -87,6 +88,30 @@ def _parents(cells: pd.Series, res: int) -> list[str]:
     return [cache.setdefault(c, h3.cell_to_parent(c, res)) for c in cells.values]
 
 
+def _hex_rows(frame: pd.DataFrame, run_id: int) -> pd.DataFrame:
+    """Per-hexagon aggregates for resolutions 4-7, in the column order of wildfire_ignition_hexes."""
+    parts = []
+    for res in PARENT_RESOLUTIONS:
+        g = frame.groupby(f"h3_{res}", sort=False).agg(
+            lat=("lat", "mean"), lon=("lon", "mean"), probability=("probability", "mean"),
+            max_probability=("probability", "max"), n_cells=("h3_cell", "size"), n_observed=("observed", "sum"),
+        ).reset_index().rename(columns={f"h3_{res}": "hex_id"})
+        g.insert(0, "res", res)
+        parts.append(g)
+    out = pd.concat(parts, ignore_index=True)
+    out["n_observed"] = out["n_observed"].astype("int64")
+    out.insert(0, "run_id", run_id)
+    return out
+
+
+def _copy_frame(conn: psycopg.Connection, table: str, frame: pd.DataFrame) -> None:
+    # The column list comes from the frame itself, so the order can never disagree with the rows.
+    with conn.cursor() as cur, cur.copy(f"COPY {table} ({', '.join(frame.columns)}) FROM STDIN") as copy:
+        # .tolist() yields native Python values; psycopg cannot adapt numpy scalars.
+        for row in zip(*(frame[c].tolist() for c in frame.columns)):
+            copy.write_row(row)
+
+
 def publish_run(conn: psycopg.Connection, cells: pd.DataFrame, meta: dict) -> int:
     """Load a scored run and make it current, atomically. Returns the new run_id.
 
@@ -119,13 +144,8 @@ def publish_run(conn: psycopg.Connection, cells: pd.DataFrame, meta: dict) -> in
              **meta, "n_cells": len(frame), "mean_probability": float(frame["probability"].mean())},
         ).fetchone()[0]
         frame.insert(0, "run_id", run_id)
-        # The column list comes from the frame itself, so the order can never disagree with the rows.
-        with conn.cursor() as cur, cur.copy(
-            f"COPY wildfire_ignition_cells ({', '.join(frame.columns)}) FROM STDIN"
-        ) as copy:
-            # .tolist() yields native Python values; psycopg cannot adapt numpy scalars.
-            for row in zip(*(frame[c].tolist() for c in frame.columns)):
-                copy.write_row(row)
+        _copy_frame(conn, CELLS, frame)
+        _copy_frame(conn, HEXES, _hex_rows(frame, run_id))
         conn.execute("UPDATE wildfire_ignition_runs SET is_current = (run_id = %s) WHERE is_current OR run_id = %s",
                      (run_id, run_id))
         # Retention: keep the newest KEEP_RUNS runs (and their cells).
@@ -168,17 +188,32 @@ def list_runs(conn: psycopg.Connection, limit: int = 30) -> list[dict]:
         return cur.fetchall()
 
 
+def _window_sql(bbox: tuple | None) -> tuple[str, list]:
+    if not bbox:
+        return "", []
+    west, south, east, north = bbox
+    return " AND lat BETWEEN %s AND %s AND lon BETWEEN %s AND %s", [south, north, west, east]
+
+
 def hexagons(conn: psycopg.Connection, run_id: int, res: int, bbox: tuple | None = None) -> list[dict]:
-    """Cells of a run grouped into H3 hexagons at `res`, optionally limited to a (w, s, e, n) window."""
-    column = "h3_cell" if res == 8 else f"h3_{res}"
-    where, params = "run_id = %s", [run_id]
-    if bbox:
-        west, south, east, north = bbox
-        where += " AND lat BETWEEN %s AND %s AND lon BETWEEN %s AND %s"
-        params += [south, north, west, east]
-    sql = (f"SELECT {column} AS hex_id, avg(probability) AS probability, max(probability) AS max_probability, "
-           f"count(*) AS n_cells, sum(observed::int) AS n_observed FROM wildfire_ignition_cells WHERE {where} "
-           f"GROUP BY {column}")
+    """Hexagons of a run at H3 resolution `res`, optionally limited to a (w, s, e, n) window.
+
+    Resolutions 4-7 are read from the pre-aggregated wildfire_ignition_hexes table; resolution 8 is the cell
+    itself. A run published before migration 043 has no hexes rows and is aggregated live instead."""
+    extra, extra_params = _window_sql(bbox)
     with conn.cursor(row_factory=dict_row) as cur:
-        cur.execute(sql, params)
+        if res == 8:
+            cur.execute("SELECT h3_cell AS hex_id, probability, probability AS max_probability, 1 AS n_cells, "
+                        f"observed::int AS n_observed FROM {CELLS} WHERE run_id = %s{extra}", [run_id, *extra_params])
+            return cur.fetchall()
+        cur.execute("SELECT hex_id, probability, max_probability, n_cells, n_observed "
+                    f"FROM {HEXES} WHERE run_id = %s AND res = %s{extra}", [run_id, res, *extra_params])
+        rows = cur.fetchall()
+        if rows or cur.execute(f"SELECT 1 FROM {HEXES} WHERE run_id = %s LIMIT 1", (run_id,)).fetchone():
+            return rows
+        # Not pre-aggregated: group the cells (slow, but correct).
+        column = f"h3_{res}"
+        cur.execute(f"SELECT {column} AS hex_id, avg(probability) AS probability, max(probability) AS max_probability, "
+                    f"count(*) AS n_cells, sum(observed::int) AS n_observed FROM {CELLS} "
+                    f"WHERE run_id = %s{extra} GROUP BY {column}", [run_id, *extra_params])
         return cur.fetchall()

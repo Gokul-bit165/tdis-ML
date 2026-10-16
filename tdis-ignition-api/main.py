@@ -23,6 +23,7 @@ from pathlib import Path
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from psycopg_pool import ConnectionPool
 from pydantic import BaseModel, Field
 
@@ -38,7 +39,8 @@ RISK_BANDS = [(0.6, "very_high"), (0.4, "high"), (0.2, "moderate"), (0.0, "low")
 COVERAGE_RESOLUTIONS = (4, 5, 6, 7, 8)
 BBOX_REQUIRED_FROM_RES = 7  # statewide hexagons this fine would be 100k+ polygons
 CURRENT_RUN_REFRESH_SECONDS = 30
-CACHE_MAX_ENTRIES = 12
+CACHE_MAX_ENTRIES = 64
+POOL_MAX_SIZE = int(os.environ.get("DB_POOL_MAX", "8"))
 
 state: dict = {}
 _lock = threading.Lock()
@@ -58,7 +60,7 @@ async def lifespan(_: FastAPI):
     url = os.environ.get("DATABASE_URL")
     if url:
         # Open lazily so the API still starts (and /health reports the problem) if the database is down.
-        pool = ConnectionPool(url, min_size=0, max_size=4, open=False, timeout=15,
+        pool = ConnectionPool(url, min_size=1, max_size=POOL_MAX_SIZE, open=False, timeout=15,
                               kwargs={"autocommit": True})
         pool.open(wait=False)
     state.update(bundle=bundle, pool=pool, current=None, current_checked=0.0, cache={})
@@ -70,6 +72,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="TDIS Ignition BIT API", version="2.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["*"])
+# Coverage JSON repeats the same run fields on every cell, so it compresses ~10x.
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=4)
 
 
 def pool() -> ConnectionPool:
@@ -180,16 +184,15 @@ def coverage(
             raise HTTPException(422, "date must be YYYY-MM-DD")
 
     run = current_run(date)
-    key = (run["run_id"], res)
-    rows = state["cache"].get(key) if window is None else None
-    if rows is None:
-        rows = with_db(lambda c: db.hexagons(c, run["run_id"], res, window))
-        if window is None:
-            with _lock:
-                if len(state["cache"]) >= CACHE_MAX_ENTRIES:
-                    state["cache"].pop(next(iter(state["cache"])))
-                state["cache"][key] = rows
+    # The client sends windows at 4-decimal precision, so revisiting a view hits the cache. Resolution 8
+    # windows are large and rarely repeat, so they are not kept.
+    key = (run["run_id"], res, window)
+    with _lock:
+        cached = state["cache"].get(key)
+    if cached is not None:
+        return cached
 
+    rows = with_db(lambda c: db.hexagons(c, run["run_id"], res, window))
     meta = run_meta(run)
     cells = [
         {
@@ -208,8 +211,14 @@ def coverage(
         }
         for r in rows
     ]
-    return {"date": meta["for_date"], **meta, "run_id": run["run_id"], "resolution": res,
-            "count": len(cells), "cells": cells}
+    payload = {"date": meta["for_date"], **meta, "run_id": run["run_id"], "resolution": res,
+               "count": len(cells), "cells": cells}
+    if res < 8:
+        with _lock:
+            if len(state["cache"]) >= CACHE_MAX_ENTRIES:
+                state["cache"].pop(next(iter(state["cache"])))
+            state["cache"][key] = payload
+    return payload
 
 
 @app.get("/api/v1/ignition/runs")

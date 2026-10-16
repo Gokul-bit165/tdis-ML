@@ -12,6 +12,7 @@ Adds storage for the daily wildfire ignition risk predictions to the TDIS portal
 | `idx_wildfire_ignition_runs_one_current` | **New unique index.** Allows at most one run with `is_current = true`. |
 | `idx_wildfire_ignition_runs_date` | **New index** on `(for_date, generated_at DESC)` for "latest run for a date". |
 | `idx_wildfire_ignition_cells_lat` | **New index** on `(run_id, lat)` for visible-area queries. |
+| `wildfire_ignition_hexes` | **New table (migration 043).** Per-run hexagons at H3 resolutions 4-7, pre-aggregated by the scoring job so the map API reads rows instead of grouping every cell per request. Index `idx_wildfire_ignition_hexes_lat` on `(run_id, res, lat)`. Cascades with the run. |
 | `data_sources` | **One row added:** `Wildfire Ignition Model`. No column change. |
 | `batch_jobs` | **One row added:** `Wildfire Ignition Scoring Job`. No column change. |
 | Grants | `ed_app_admin`: ALL on both tables. `ed_app_user`: SELECT on both. Skipped if a role does not exist. |
