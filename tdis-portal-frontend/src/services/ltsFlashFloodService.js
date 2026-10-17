@@ -26,7 +26,8 @@ async function httpGet(path, params) {
     );
   }
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const url = new URL(`${BASE_URL}${normalizedPath}`);
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+  const url = new URL(`${BASE_URL}${normalizedPath}`, origin);
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
