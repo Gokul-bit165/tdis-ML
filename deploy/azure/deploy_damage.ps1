@@ -45,7 +45,9 @@ Write-Output "== 4. database URL"
 $url = Read-DatabaseUrl $DbHost $Database $DbUser
 
 Write-Output "== 5. loader job ($Cron)"
+$ErrorActionPreference = "Continue"   # PS 5.1 treats the extension's stderr warning as an error under Stop
 $jobExists = & $az containerapp job show -g $rg -n damage-loader-job --query name -o tsv 2>$null
+$ErrorActionPreference = "Stop"
 if ($jobExists) { Az containerapp job delete -g $rg -n damage-loader-job --yes -o none }
 Az containerapp job create -g $rg -n damage-loader-job --environment $envName `
     --trigger-type Schedule --cron-expression $Cron `
@@ -63,7 +65,9 @@ Az containerapp job start -g $rg -n damage-loader-job --image "$acr.azurecr.io/d
 Write-Output "  check it: az containerapp job execution list -g $rg -n damage-loader-job -o table"
 
 Write-Output "== 7. damage API"
+$ErrorActionPreference = "Continue"
 $appExists = & $az containerapp show -g $rg -n tdis-damage-api --query name -o tsv 2>$null
+$ErrorActionPreference = "Stop"
 if ($appExists) {
     Az containerapp secret set -g $rg -n tdis-damage-api --secrets "database-url=$url" -o none
     Az containerapp update -g $rg -n tdis-damage-api --image "$acr.azurecr.io/damage-api:$Tag" --set-env-vars "CORS_ORIGINS=$Cors" -o none

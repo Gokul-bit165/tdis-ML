@@ -26,7 +26,16 @@ function Az {
 # Build an image in ACR from a folder (or a staged copy of one).
 function BuildImage([string]$Name, [string]$Tag, [string]$Context) {
     Write-Output "  building ${Name}:$Tag"
-    Az acr build -r $acr -t "${Name}:$Tag" $Context --query status -o tsv | Out-Null
+    # Stream no logs: the CLI crashes printing Unicode build output on a cp1252 console. Poll the run instead.
+    $runId = Az acr build -r $acr -t "${Name}:$Tag" $Context --no-logs --query runId -o tsv
+    while ($true) {
+        $status = Az acr task show-run -r $acr --run-id $runId --query status -o tsv
+        if ($status -eq "Succeeded") { break }
+        if ($status -in "Failed", "Canceled", "Error", "Timeout") {
+            throw "ACR build $runId of ${Name}:$Tag ended $status (az acr task logs -r $acr --run-id $runId)"
+        }
+        Start-Sleep 10
+    }
 }
 
 # Prompt for the Postgres password and return a connection URL. The password is never written to disk.
