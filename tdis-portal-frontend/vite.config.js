@@ -18,6 +18,12 @@ export default defineConfig(({ mode }) => {
     secure: aiProxySecure,
   };
 
+  const portalApiTarget =
+    env.VITE_PORTAL_API_TARGET?.trim() ||
+    (env.VITE_API_URL?.startsWith('http')
+      ? env.VITE_API_URL.replace(/\/api\/v1\/?$/, '')
+      : 'https://api-new-portal.dev.cloud.tdis.io');
+
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
@@ -27,6 +33,18 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        '/api/v1': {
+          target: portalApiTarget,
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            Origin: 'https://portal.dev.cloud.tdis.io',
+          },
+        },
+        '/api/emails': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+        },
         '/api': {
           target: 'http://localhost:8080',
           changeOrigin: true,

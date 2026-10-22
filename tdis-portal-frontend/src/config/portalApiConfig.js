@@ -61,7 +61,8 @@ export function getPortalApiUrl(path, searchParams) {
     throw new Error('Portal API not configured. Set VITE_API_URL in your .env');
   }
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const url = new URL(`${base}${normalizedPath}`);
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+  const url = new URL(`${base}${normalizedPath}`, origin);
   if (searchParams) {
     Object.entries(searchParams).forEach(([k, v]) => {
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
