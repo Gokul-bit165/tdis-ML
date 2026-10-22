@@ -9,6 +9,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { MapboxStyleSwitcherControl } from 'mapbox-gl-style-switcher';
+import 'mapbox-gl-style-switcher/styles.css';
+import { mapStyles } from '../config/mapStyles';
 import { h3ToGeoJson } from '../services/h3ToGeoJson';
 import { getIgnitionCoverage, getIgnitionModelInfo } from '../services/ignitionService';
 
@@ -34,7 +37,8 @@ const FINEST_RES = 8;
 const HEX_AREA_KM2 = { 4: 1770, 5: 253, 6: 36, 7: 5.2, 8: 0.74 };
 // From this resolution up the API is asked for the visible window only (statewide would be 100k+ hexagons).
 const WINDOW_FROM_RES = 6;
-const WINDOW_PADDING = 0.5; // fetch 50% beyond each edge so small pans don't trigger a reload
+const WINDOW_PADDING = 0.3; // fetch 30% beyond each edge so small pans don't trigger a reload
+const RESPONSE_CACHE_MAX = 24; // responses kept in memory so revisiting a zoom level/area is instant
 const REFRESH_DEBOUNCE_MS = 120;
 
 const resForZoom = (zoom) => RES_STEPS.find(([maxZoom]) => zoom < maxZoom)?.[1] ?? FINEST_RES;
@@ -109,6 +113,8 @@ const WildfireIgnitionTab = () => {
   const requestIdRef = useRef(0);
   const abortRef = useRef(null);
   const debounceRef = useRef(null);
+  const responseCacheRef = useRef(new Map());
+  const geoJsonRef = useRef({ type: 'FeatureCollection', features: [] }); // latest hexagons, re-applied after a style change
   const [mapReady, setMapReady] = useState(false);
   const [data, setData] = useState(null);
   const [modelInfo, setModelInfo] = useState(null);
@@ -129,6 +135,19 @@ const WildfireIgnitionTab = () => {
     const window = needsWindow ? paddedWindow(bounds, WINDOW_PADDING) : null;
     const requestId = ++requestIdRef.current;
     abortRef.current?.abort(); // stop the superseded request so it does not keep the server busy
+
+    const cache = responseCacheRef.current;
+    const cacheKey = `${res}|${window ? window.map((v) => v.toFixed(3)).join(',') : 'all'}`;
+    const hit = cache.get(cacheKey);
+    if (hit) {
+      cache.delete(cacheKey);
+      cache.set(cacheKey, hit); // most recently used goes last
+      lastFetchRef.current = { res, window };
+      setError(null);
+      setLoading(false);
+      setData(hit);
+      return;
+    }
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
@@ -137,6 +156,8 @@ const WildfireIgnitionTab = () => {
       .then((result) => {
         if (requestId !== requestIdRef.current) return; // a newer request superseded this one
         lastFetchRef.current = { res, window };
+        cache.set(cacheKey, result);
+        if (cache.size > RESPONSE_CACHE_MAX) cache.delete(cache.keys().next().value);
         setData(result);
       })
       .catch((e) => requestId === requestIdRef.current && setError(e.message))
@@ -150,10 +171,17 @@ const WildfireIgnitionTab = () => {
       style: 'mapbox://styles/mapbox/streets-v12',
       bounds: TEXAS_BOUNDS,
       fitBoundsOptions: { padding: 40 },
+      // Same as the other tabs: scroll zooms the map only with Ctrl/Cmd held, so the page can still scroll.
+      cooperativeGestures: true,
     });
+    // Same base-map switcher (Streets, Light, Dark, Satellite...) as the other tabs.
+    map.addControl(new MapboxStyleSwitcherControl(mapStyles, 'Streets'), 'top-right');
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    map.on('load', () => {
-      map.addSource(SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+
+    // Switching base map replaces the whole style and drops custom sources/layers, so (re)add them on every style load.
+    map.on('style.load', () => {
+      if (map.getSource(SOURCE_ID)) return;
+      map.addSource(SOURCE_ID, { type: 'geojson', data: geoJsonRef.current });
       map.addLayer({
         id: FILL_LAYER_ID,
         type: 'fill',
@@ -167,7 +195,10 @@ const WildfireIgnitionTab = () => {
         source: SOURCE_ID,
         paint: { 'line-color': '#ffffff', 'line-width': 0.4, 'line-opacity': 0.6 },
       });
+    });
 
+    // Event handlers are keyed by layer id, so they survive style changes and are registered once.
+    map.on('load', () => {
       map.on('click', FILL_LAYER_ID, (e) => {
         const p = e.features?.[0]?.properties;
         if (!p) return;
@@ -227,7 +258,15 @@ const WildfireIgnitionTab = () => {
   // Push to map
   useEffect(() => {
     if (!mapReady || !data) return;
-    mapRef.current?.getSource(SOURCE_ID)?.setData(h3ToGeoJson(data.cells));
+    // The API sends run details once; give each hexagon the fields its popup shows.
+    const cells = data.cells.map((c) => ({
+      ...c,
+      for_date: data.for_date,
+      uploaded_at: data.uploaded_at,
+      last_updated: data.generated_at,
+    }));
+    geoJsonRef.current = h3ToGeoJson(cells);
+    mapRef.current?.getSource(SOURCE_ID)?.setData(geoJsonRef.current);
   }, [mapReady, data]);
 
   const counts = RISK_LEVELS.map((r) => ({
@@ -238,6 +277,11 @@ const WildfireIgnitionTab = () => {
 
   return (
     <div className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'auto' }}>
+      {/* Keep Mapbox's zoom/compass buttons below the tab bar that overlays the top of the map */}
+      <style>{`
+        .mapboxgl-ctrl-top-right { top: 64px !important; }
+        @media (max-width: 640px) { .mapboxgl-ctrl-top-right { top: 56px !important; } }
+      `}</style>
       <div ref={containerRef} className="w-full h-full" />
 
       <div className="absolute bottom-6 right-4 z-10 w-72 rounded-lg bg-white/95 p-4 shadow-lg text-[#324755]">

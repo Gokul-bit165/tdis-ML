@@ -4,7 +4,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY ignition_core.py ingest.py store.py db.py score_job.py main.py bootstrap_db.py ./
+COPY ignition_core.py ingest.py store.py db.py score_job.py main.py bootstrap_db.py apply_sql.py ./
 COPY sql ./sql
 COPY model ./model
 COPY data/texas.geojson data/texas_cells.parquet ./data/

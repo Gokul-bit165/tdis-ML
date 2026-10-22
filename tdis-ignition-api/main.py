@@ -21,7 +21,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from psycopg_pool import ConnectionPool
@@ -40,10 +40,23 @@ COVERAGE_RESOLUTIONS = (4, 5, 6, 7, 8)
 BBOX_REQUIRED_FROM_RES = 7  # statewide hexagons this fine would be 100k+ polygons
 CURRENT_RUN_REFRESH_SECONDS = 30
 CACHE_MAX_ENTRIES = 64
+WARM_RESOLUTIONS = (4, 5, 6)  # statewide views, loaded at startup
+BROWSER_CACHE_SECONDS = 60
 POOL_MAX_SIZE = int(os.environ.get("DB_POOL_MAX", "8"))
 
 state: dict = {}
 _lock = threading.Lock()
+
+
+def warm_up() -> None:
+    """Pre-load the statewide views so the first visitor after a restart does not wait on the database.
+    Failures are harmless: requests just fall back to live queries."""
+    try:
+        run = current_run(None)
+        for res in WARM_RESOLUTIONS:
+            build_coverage(run, res, None)
+    except Exception as e:  # noqa: BLE001
+        print(f"warm-up skipped: {type(e).__name__}: {e}", flush=True)
 
 
 def risk_level(p: float) -> str:
@@ -64,6 +77,8 @@ async def lifespan(_: FastAPI):
                               kwargs={"autocommit": True})
         pool.open(wait=False)
     state.update(bundle=bundle, pool=pool, current=None, current_checked=0.0, cache={})
+    if pool is not None:
+        threading.Thread(target=warm_up, daemon=True).start()
     yield
     if pool is not None:
         pool.close()
@@ -170,6 +185,7 @@ def coverage(
     date: str | None = Query(None, description="Prediction date YYYY-MM-DD; defaults to the current run"),
     res: int = Query(5, description="H3 resolution of the returned hexagons (4-8)"),
     bbox: str | None = Query(None, description="west,south,east,north; required for res >= 7"),
+    response: Response = None,
 ):
     """Hexagons of the current run at H3 resolution `res`, read from Postgres."""
     if res not in COVERAGE_RESOLUTIONS:
@@ -184,6 +200,15 @@ def coverage(
             raise HTTPException(422, "date must be YYYY-MM-DD")
 
     run = current_run(date)
+    t0 = time.perf_counter()
+    payload = build_coverage(run, res, window)
+    # Prediction runs change at most daily, so let the browser reuse a response when the user pans back.
+    response.headers["Cache-Control"] = f"public, max-age={BROWSER_CACHE_SECONDS}"
+    response.headers["Server-Timing"] = f"total;dur={(time.perf_counter() - t0) * 1000:.0f}"
+    return payload
+
+
+def build_coverage(run: dict, res: int, window: tuple | None) -> dict:
     # The client sends windows at 4-decimal precision, so revisiting a view hits the cache. Resolution 8
     # windows are large and rarely repeat, so they are not kept.
     key = (run["run_id"], res, window)
@@ -202,12 +227,6 @@ def coverage(
             "n_cells": int(r["n_cells"]),
             "n_observed": int(r["n_observed"]),
             "risk_level": risk_level(float(r["probability"])),
-            "for_date": meta["for_date"],
-            "data_date": meta["for_date"],
-            "uploaded_at": meta["uploaded_at"],
-            "source_file": meta["source_file"],
-            "last_updated": meta["generated_at"],
-            "data_source": meta["data_source"],
         }
         for r in rows
     ]
