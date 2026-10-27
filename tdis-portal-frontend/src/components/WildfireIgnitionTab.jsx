@@ -211,8 +211,6 @@ const WildfireIgnitionTab = () => {
                Hottest cell in hexagon: ${pct(p.max_probability)}<br/>
                ${Number(p.n_observed) > 0 ? `Cells: ${p.n_cells} (${p.n_observed} from uploaded data)` : `Cells: ${p.n_cells}, estimated from nearby uploaded cells`}<br/>
                <strong>Prediction for: ${longDate(p.for_date)} (${relativeDay(p.for_date)})</strong><br/>
-               Data uploaded: ${utcStamp(p.uploaded_at)}<br/>
-               Scored: ${utcStamp(p.last_updated)}<br/>
              </div>`
           )
           .addTo(map);
@@ -259,12 +257,7 @@ const WildfireIgnitionTab = () => {
   useEffect(() => {
     if (!mapReady || !data) return;
     // The API sends run details once; give each hexagon the fields its popup shows.
-    const cells = data.cells.map((c) => ({
-      ...c,
-      for_date: data.for_date,
-      uploaded_at: data.uploaded_at,
-      last_updated: data.generated_at,
-    }));
+    const cells = data.cells.map((c) => ({ ...c, for_date: data.for_date }));
     geoJsonRef.current = h3ToGeoJson(cells);
     mapRef.current?.getSource(SOURCE_ID)?.setData(geoJsonRef.current);
   }, [mapReady, data]);
