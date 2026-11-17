@@ -8,7 +8,11 @@ function Fqdn([string]$App) { "https://" + (Az containerapp show -g $rg -n $App 
 
 $env:VITE_DAMAGE_API_URL = Fqdn "tdis-damage-api"
 $env:VITE_IGNITION_API_URL = Fqdn "wildfire-ignition-api"
-$env:VITE_EMAIL_API_URL = Fqdn "tdis-portal-backend"   # check the path the frontend appends; see the note in the deploy guide
+# Contact Us / subscribe backend: only override .env when the Container App exists (it is not deployed yet).
+$ErrorActionPreference = "Continue"
+$emailApp = & $az containerapp show -g $rg -n tdis-portal-backend --query name -o tsv 2>$null
+$ErrorActionPreference = "Stop"
+if ($emailApp) { $env:VITE_EMAIL_API_URL = Fqdn "tdis-portal-backend" }   # check the path the frontend appends
 $env:VITE_ENABLE_DAMAGE_ASSESSMENT = "true"
 $env:VITE_DRAINAGE_DATA_URL = "https://$storageAccount.blob.core.windows.net/drainage-data/current"   # see setup_drainage_storage.ps1
 $env:VITE_ENABLE_DRAINAGE_MONITORING = "true"
