@@ -35,12 +35,15 @@ import OSATab from "./OSATab.jsx";
 import AIAssistantTab from "./AIAssistantTab.jsx";
 import WildfireIgnitionTab from "./WildfireIgnitionTab.jsx";
 import DamageAssessmentTab from "./DamageAssessmentTab.jsx";
+import DrainageMonitoringTab from "./DrainageMonitoringTab.jsx";
 import {
     ACTIVE_WEATHER_EVENTS_BETA_TAB,
     AI_ASSISTANT_TAB,
     DAMAGE_ASSESSMENT_TAB,
+    DRAINAGE_MONITORING_TAB,
     isActiveWeatherEventsBetaEnabled,
     isDamageAssessmentEnabled,
+    isDrainageMonitoringEnabled,
     isTdisAiEnabled,
     resolveActiveTab,
 } from "@/config/featureFlags";
@@ -72,6 +75,7 @@ function getMapProductTabs() {
         OSA_TAB_ID,
         WILDFIRE_IGNITION_TAB,
         ...(isDamageAssessmentEnabled() ? [DAMAGE_ASSESSMENT_TAB] : []),
+        ...(isDrainageMonitoringEnabled() ? [DRAINAGE_MONITORING_TAB] : []),
     ];
 }
 
@@ -244,6 +248,9 @@ const MainLayout = () => {
                             {activeTab === WILDFIRE_IGNITION_TAB && <WildfireIgnitionTab />}
                             {isDamageAssessmentEnabled() && activeTab === DAMAGE_ASSESSMENT_TAB && (
                                 <DamageAssessmentTab />
+                            )}
+                            {isDrainageMonitoringEnabled() && activeTab === DRAINAGE_MONITORING_TAB && (
+                                <DrainageMonitoringTab />
                             )}
                             {isTdisAiEnabled() && activeTab === AI_ASSISTANT_TAB && <AIAssistantTab />}
                             {/* TIF and DIA tabs commented out - not needed for now */}

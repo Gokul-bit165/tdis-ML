@@ -46,6 +46,22 @@ export function isDamageAssessmentEnabled() {
     return Boolean(import.meta.env.DEV);
 }
 
+/** Map tab id for Drainage Monitoring (drone bayou defect detection). */
+export const DRAINAGE_MONITORING_TAB = 'drainage-monitoring';
+
+/**
+ * Parse VITE_ENABLE_DRAINAGE_MONITORING (build-time).
+ * When unset: enabled for `npm run dev` only; disabled for `vite build` (production bundle).
+ */
+export function isDrainageMonitoringEnabled() {
+    const raw = import.meta.env.VITE_ENABLE_DRAINAGE_MONITORING;
+    if (raw !== undefined && String(raw).trim() !== '') {
+        const v = String(raw).trim().toLowerCase();
+        return v === 'true' || v === '1' || v === 'yes';
+    }
+    return Boolean(import.meta.env.DEV);
+}
+
 /**
  * @param {string | null | undefined} tab
  * @param {string} [defaultTab='map']
@@ -61,6 +77,9 @@ export function resolveActiveTab(tab, defaultTab = 'map') {
         return fallback;
     }
     if (value === DAMAGE_ASSESSMENT_TAB && !isDamageAssessmentEnabled()) {
+        return fallback;
+    }
+    if (value === DRAINAGE_MONITORING_TAB && !isDrainageMonitoringEnabled()) {
         return fallback;
     }
     return value;

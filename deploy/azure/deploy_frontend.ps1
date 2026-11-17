@@ -10,9 +10,12 @@ $env:VITE_DAMAGE_API_URL = Fqdn "tdis-damage-api"
 $env:VITE_IGNITION_API_URL = Fqdn "wildfire-ignition-api"
 $env:VITE_EMAIL_API_URL = Fqdn "tdis-portal-backend"   # check the path the frontend appends; see the note in the deploy guide
 $env:VITE_ENABLE_DAMAGE_ASSESSMENT = "true"
+$env:VITE_DRAINAGE_DATA_URL = "https://$storageAccount.blob.core.windows.net/drainage-data/current"   # see setup_drainage_storage.ps1
+$env:VITE_ENABLE_DRAINAGE_MONITORING = "true"
 Write-Output "damage:   $env:VITE_DAMAGE_API_URL"
 Write-Output "ignition: $env:VITE_IGNITION_API_URL"
 Write-Output "email:    $env:VITE_EMAIL_API_URL"
+Write-Output "drainage: $env:VITE_DRAINAGE_DATA_URL"
 
 # The existing script builds, creates the Static Web App if needed, deploys, and updates ignition CORS.
 & "$Root\tdis-ignition-api\deploy_frontend.ps1" -AppName $swaName -Frontend "$Root\tdis-portal-frontend"

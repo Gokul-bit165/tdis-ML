@@ -8,7 +8,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import './TabNavigation.css';
 import { useNavigate } from 'react-router-dom';
-import { BotMessageSquare, CloudLightning, CloudRain, Droplets, Flame, ShieldAlert, Zap } from 'lucide-react';
+import { BotMessageSquare, CloudLightning, CloudRain, Droplets, Flame, ShieldAlert, Waves, Zap } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useKeycloak } from '@/hooks/useKeycloak';
 import CustomTooltip from './ui/CustomTooltip';
@@ -19,8 +19,10 @@ import {
     ACTIVE_WEATHER_EVENTS_BETA_TAB,
     AI_ASSISTANT_TAB,
     DAMAGE_ASSESSMENT_TAB,
+    DRAINAGE_MONITORING_TAB,
     isActiveWeatherEventsBetaEnabled,
     isDamageAssessmentEnabled,
+    isDrainageMonitoringEnabled,
     isTdisAiEnabled,
 } from '@/config/featureFlags';
 import { trackEvent, NAVIGATION } from '../utils/googleAnalytics.js';
@@ -76,6 +78,13 @@ const mapTabsConfig = [
         shortLabel: 'Damage',
         icon: ShieldAlert,
         iconColor: '#b91c1c'
+    },
+    {
+        value: DRAINAGE_MONITORING_TAB,
+        label: 'Drainage Monitoring',
+        shortLabel: 'Drainage',
+        icon: Waves,
+        iconColor: '#0e7490'
     }
 ];
 
@@ -140,6 +149,7 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
     const mapTabs = mapTabsConfig.filter((tab) => {
         if (tab.value === ACTIVE_WEATHER_EVENTS_BETA_TAB) return isActiveWeatherEventsBetaEnabled();
         if (tab.value === DAMAGE_ASSESSMENT_TAB) return isDamageAssessmentEnabled();
+        if (tab.value === DRAINAGE_MONITORING_TAB) return isDrainageMonitoringEnabled();
         return true;
     });
     const isAiActive = showTdisAi && activeTab === assistantTabConfig.value;

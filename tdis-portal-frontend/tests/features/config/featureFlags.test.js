@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     ACTIVE_WEATHER_EVENTS_BETA_TAB,
     AI_ASSISTANT_TAB,
+    DRAINAGE_MONITORING_TAB,
     isActiveWeatherEventsBetaEnabled,
+    isDrainageMonitoringEnabled,
     resolveActiveTab,
 } from '@/config/featureFlags';
 
@@ -11,6 +13,22 @@ const DEFAULT_ACTIVE_WEATHER_TAB = 'active-weather-events';
 describe('featureFlags', () => {
     afterEach(() => {
         vi.unstubAllEnvs();
+    });
+
+    describe('isDrainageMonitoringEnabled', () => {
+        it('parses explicit values', () => {
+            vi.stubEnv('VITE_ENABLE_DRAINAGE_MONITORING', 'true');
+            expect(isDrainageMonitoringEnabled()).toBe(true);
+            vi.stubEnv('VITE_ENABLE_DRAINAGE_MONITORING', 'false');
+            expect(isDrainageMonitoringEnabled()).toBe(false);
+        });
+
+        it('redirects the drainage tab to the default when disabled', () => {
+            vi.stubEnv('VITE_ENABLE_DRAINAGE_MONITORING', 'false');
+            expect(resolveActiveTab(DRAINAGE_MONITORING_TAB, DEFAULT_ACTIVE_WEATHER_TAB)).toBe(
+                DEFAULT_ACTIVE_WEATHER_TAB
+            );
+        });
     });
 
     describe('isActiveWeatherEventsBetaEnabled', () => {

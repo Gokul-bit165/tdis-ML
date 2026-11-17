@@ -70,6 +70,7 @@ describe('TabNavigation', () => {
     vi.stubEnv('VITE_ENABLE_TDIS_AI', 'false');
     vi.stubEnv('VITE_ENABLE_ACTIVE_WEATHER_EVENTS_BETA', 'false');
     vi.stubEnv('VITE_ENABLE_DAMAGE_ASSESSMENT', 'false');
+    vi.stubEnv('VITE_ENABLE_DRAINAGE_MONITORING', 'false');
   });
 
   afterEach(() => {
@@ -135,6 +136,17 @@ describe('TabNavigation', () => {
     vi.stubEnv('VITE_ENABLE_DAMAGE_ASSESSMENT', 'false');
     renderTabNavigation(<TabNavigation activeTab="hmed" setActiveTab={() => {}} />);
     expect(screen.queryByText('Damage Assessment')).not.toBeInTheDocument();
+  });
+
+  it('includes the Drainage Monitoring tab when its flag is on', () => {
+    vi.stubEnv('VITE_ENABLE_DRAINAGE_MONITORING', FLAG_ON);
+    renderTabNavigation(<TabNavigation activeTab="hmed" setActiveTab={() => {}} />);
+    expect(screen.getByText('Drainage Monitoring')).toBeInTheDocument();
+  });
+
+  it('hides the Drainage Monitoring tab when its flag is off', () => {
+    renderTabNavigation(<TabNavigation activeTab="hmed" setActiveTab={() => {}} />);
+    expect(screen.queryByText('Drainage Monitoring')).not.toBeInTheDocument();
   });
 
   describe('TDIS AI pill', () => {

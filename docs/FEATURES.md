@@ -27,6 +27,7 @@ Map tabs (tab ids verified in MainLayout/featureFlags; contents inferred from co
 | `lts-flash-flood` | LtsFlashFloodTab | LTS flash flood layers |
 | `osa` | OSATab | Infrastructure status, "Every 1 hour" |
 | `wildfire-ignition` | WildfireIgnitionTab | **Wildfire ignition risk hexagons** (this ML system) |
+| `drainage-monitoring` | DrainageMonitoringTab | Drone bayou defect classes with legend; static files in Blob Storage (no API or database); flag `VITE_ENABLE_DRAINAGE_MONITORING`. See DRAINAGE_MONITORING.md |
 | `ai-assistant` | AIAssistantTab | TDIS AI chat; flag `VITE_ENABLE_TDIS_AI` (default on in dev, off in production builds) |
 | `tif`, `dia` | TIFTab, DIATab | Commented out in MainLayout, not shown |
 

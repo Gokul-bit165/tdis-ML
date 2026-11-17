@@ -41,6 +41,12 @@ The following environment variables are required to run the project:
 10. `VITE_ENABLE_DAMAGE_ASSESSMENT` _(optional)_
    - Purpose: Build-time flag to show the Damage Assessment tab. Unset: shown in `npm run dev` only. Set `true` to enable or `false` to disable.
 
+11. `VITE_DRAINAGE_DATA_URL` _(optional locally)_
+   - Purpose: Folder of Drainage Monitoring files in Blob Storage (`manifest.json`, `points.geojson`, outline tiles), read directly by the browser. Production: `https://datatexas.blob.core.windows.net/drainage-data/current`. Defaults to `http://localhost:8003` (`tdis-drainage/serve_local.mjs`). See `docs/DRAINAGE_MONITORING.md`.
+
+12. `VITE_ENABLE_DRAINAGE_MONITORING` _(optional)_
+   - Purpose: Build-time flag to show the Drainage Monitoring tab. Unset: shown in `npm run dev` only.
+
 ## Notes — Portal vs email API (CI)
 
 These are reminders for onboarding and deployments; authoritative wiring lives in [`azure-pipelines.yml`](azure-pipelines.yml).
